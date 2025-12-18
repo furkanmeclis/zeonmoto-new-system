@@ -6,8 +6,7 @@ class PriceResult
 {
     public function __construct(
         public float $base,
-        public float $final,
-        public array $appliedRules = []
+        public float $final
     ) {
     }
 
@@ -28,7 +27,6 @@ class PriceResult
             'base' => $this->base,
             'final' => $this->final,
             'difference' => $this->getDifference(),
-            'applied_rules' => $this->appliedRules,
         ];
     }
 }

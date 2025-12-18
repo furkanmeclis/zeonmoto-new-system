@@ -57,11 +57,6 @@ class OrderCreationService
                     'sku_snapshot' => $product->sku,
                     'unit_price_snapshot' => $unitPrice,
                     'line_total' => $lineTotal,
-                    'price_rules_snapshot' => [
-                        'base_price' => $priceResult->base,
-                        'final_price' => $priceResult->final,
-                        'applied_rules' => $priceResult->appliedRules,
-                    ],
                     // Keep deprecated fields for backward compatibility
                     'unit_price' => $unitPrice,
                     'total_price' => $lineTotal,

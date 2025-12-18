@@ -19,7 +19,7 @@
 **ZeonMoto**, motosiklet parçaları için bir e-ticaret yönetim sistemidir. Sistemin temel amacı:
 
 1. **Dış Kaynak Entegrasyonu**: CKYMOTO servisinden ürün verilerini otomatik senkronize etme
-2. **Fiyat Yönetimi**: Esnek fiyat kuralı sistemi ile ürün fiyatlarını dinamik hesaplama
+2. **Fiyat Yönetimi**: Ürün fiyatlarını base_price ve custom_price ile yönetme
 3. **Sipariş Yönetimi**: Müşteri siparişlerini takip etme ve yönetme
 4. **Admin Paneli**: Filament v4 ile modern ve kullanıcı dostu yönetim arayüzü
 5. **Görsel Yönetimi**: External ve custom görselleri güvenli şekilde proxy üzerinden servis etme
@@ -74,7 +74,6 @@ app/
 - `hasMany` ProductExternal
 - `hasMany` OrderItem
 - `hasMany` CartItem
-- `hasMany` PriceRule (scope: product)
 - `belongsToMany` Category
 
 ### 2. **categories** (Kategoriler)
@@ -90,7 +89,6 @@ app/
 
 **İlişkiler:**
 - `belongsToMany` Product
-- `hasMany` PriceRule (scope: category)
 
 **Özellikler:**
 - `external_name`: Dış kaynaktan gelen kategori adı (unique)
@@ -133,39 +131,7 @@ app/
 - External görseller: `external_url` ile proxy üzerinden servis edilir
 - `url` accessor: Custom için storage URL, external için proxy URL döner
 
-### 6. **price_rules** (Fiyat Kuralları)
-```sql
-- id (PK)
-- scope (string) - 'global', 'category', 'product'
-- scope_id (unsignedBigInteger, nullable)
-- type (string) - 'percentage', 'amount'
-- value (decimal 10,2)
-- priority (integer, default: 0)
-- is_active (boolean, default: true)
-- starts_at (datetime, nullable)
-- ends_at (datetime, nullable)
-- timestamps
-
-INDEXES:
-- (scope, scope_id)
-- priority
-- is_active
-```
-
-**Kapsam (Scope) Sistemi:**
-- **Global**: Tüm ürünlere uygulanır (`scope_id = null`)
-- **Category**: Belirli kategoriye ait ürünlere uygulanır
-- **Product**: Belirli ürüne uygulanır
-
-**Tip Sistemi:**
-- **Percentage**: Yüzde bazlı artış/indirim (örn: +10%, -5%)
-- **Amount**: Sabit tutar artış/indirim (örn: +50 TL, -20 TL)
-
-**Öncelik Sistemi:**
-- Düşük priority değeri = önce uygulanır
-- Kurallar priority sırasına göre sıralı uygulanır
-
-### 7. **customers** (Müşteriler)
+### 6. **customers** (Müşteriler)
 ```sql
 - id (PK)
 - first_name (string)
@@ -220,13 +186,12 @@ INDEXES:
 - sku_snapshot (string, nullable)
 - unit_price_snapshot (decimal 10,2, nullable)
 - line_total (decimal 10,2)
-- price_rules_snapshot (json, nullable)
+- price_rules_snapshot (json, nullable) - DEPRECATED: Tarihsel veri için korunuyor
 - timestamps
 ```
 
 **Özellikler:**
 - Snapshot alanları sipariş oluşturulduktan sonra değiştirilemez (updating event ile korunur)
-- `price_rules_snapshot`: Uygulanan fiyat kurallarının JSON snapshot'ı
 - Deprecated alanlar backward compatibility için korunur
 
 ### 10. **carts** (Sepetler)
@@ -274,7 +239,6 @@ categories(): BelongsToMany
 images(): HasMany (ordered by sort_order)
 externals(): HasMany
 orderItems(): HasMany
-priceRules(): HasMany (scope: product)
 
 // Metodlar
 calculatePrice(?int $dealerId = null): PriceResult
@@ -289,20 +253,6 @@ products(): BelongsToMany
 // Boot Events
 - creating: Slug otomatik oluşturulur (display_name'den)
 - updating: display_name değişirse slug güncellenir (eğer slug manuel değiştirilmemişse)
-```
-
-### PriceRule Model
-```php
-// İlişkiler
-category(): BelongsTo (scope: category)
-product(): BelongsTo (scope: product)
-
-// Scopes
-scopeIsActive(Builder): Aktif ve tarih aralığında olan kurallar
-scopeForScope(Builder, PriceRuleScope, ?int): Scope'a göre filtreleme
-
-// Metodlar
-isApplicable(): bool - Kural şu an uygulanabilir mi?
 ```
 
 ### Order Model
@@ -327,10 +277,6 @@ product(): BelongsTo
 
 // Boot Events
 - updating: Snapshot alanları korunur (değiştirilemez)
-
-// Accessors/Mutators
-getPriceRulesSnapshotAttribute(): array
-setPriceRulesSnapshotAttribute($value): void
 ```
 
 ### ProductImage Model
@@ -351,24 +297,13 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
 
 **Dosya:** `app/Services/Pricing/PriceEngine.php`
 
-**Amaç:** Ürün fiyatlarını base_price'dan başlayarak aktif fiyat kurallarını uygulayarak hesaplar.
+**Amaç:** Ürün fiyatlarını hesaplar. custom_price varsa ve > 0 ise custom_price, değilse base_price döner.
 
 **Metodlar:**
 - `calculate(Product $product, ?int $dealerId = null): PriceResult`
   - Ürün için final fiyatı hesaplar
   - Cache kullanır (5 dakika TTL)
-  - Global → Category → Product sırasıyla kuralları uygular
-  - Priority sırasına göre sıralar
-
-- `getActiveRules(Product $product): Collection`
-  - Global, Category ve Product kurallarını toplar
-  - Aktif ve tarih aralığında olanları filtreler
-  - Priority'ye göre sıralar
-
-- `applyRule(float $price, PriceRule $rule): float`
-  - Tek bir kuralı fiyata uygular
-  - Percentage: `price + (price * value / 100)`
-  - Amount: `price + value`
+  - custom_price varsa ve > 0 ise custom_price, değilse base_price döner
 
 - `flushForProduct(int $productId): void` - Ürün cache'ini temizler
 - `flushAll(): void` - Tüm cache'i temizler
@@ -376,7 +311,6 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
 **Cache Stratejisi:**
 - Key: `price:{productId}:{dealerId|null}`
 - TTL: 5 dakika
-- PriceRule değişikliklerinde otomatik temizlenir (PriceRuleObserver)
 
 ### 2. PriceResult (Fiyat Hesaplama Sonucu)
 
@@ -384,8 +318,7 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
 
 **Özellikler:**
 - `base`: Base fiyat
-- `final`: Final fiyat (kurallar uygulandıktan sonra)
-- `appliedRules`: Uygulanan kuralların detaylı listesi
+- `final`: Final fiyat (custom_price varsa custom_price, değilse base_price)
 
 **Metodlar:**
 - `getDifference(): float` - Final - Base farkı
@@ -489,7 +422,6 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
 **Özellikler:**
 - Snapshot mantığı: Sipariş oluşturulduğunda ürün bilgileri snapshot'lanır
 - PriceEngine entegrasyonu: Her ürün için güncel fiyat hesaplanır
-- Price rules snapshot: Uygulanan kurallar JSON olarak saklanır
 
 ---
 
@@ -507,23 +439,19 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
    - Kategori yönetimi
    - external_name ve display_name yönetimi
 
-3. **PriceRuleResource** (`app/Filament/Resources/PriceRules/`)
-   - Fiyat kuralı yönetimi
-   - Scope, type, priority, tarih aralığı yönetimi
-
-4. **CustomerResource** (`app/Filament/Resources/Customers/`)
+3. **CustomerResource** (`app/Filament/Resources/Customers/`)
    - Müşteri yönetimi
 
-5. **OrderResource** (`app/Filament/Resources/Orders/`)
+4. **OrderResource** (`app/Filament/Resources/Orders/`)
    - Sipariş yönetimi
    - Relations: OrderItemsRelationManager
    - Status yönetimi
 
-6. **UserResource** (`app/Filament/Resources/Users/`)
+5. **UserResource** (`app/Filament/Resources/Users/`)
    - Admin kullanıcı yönetimi
 
 ### Navigation Grupları
-- **Ürünler**: Products, Categories, PriceRules
+- **Ürünler**: Products, Categories
 - **Siparişler**: Orders, Customers
 
 ---
@@ -632,25 +560,6 @@ SyncExternalProductsJob::dispatch('ckymoto');
 
 ---
 
-## 👁️ Observer'lar
-
-### PriceRuleObserver
-
-**Dosya:** `app/Observers/PriceRuleObserver.php`
-
-**Amaç:** PriceRule değişikliklerinde cache'i otomatik temizler
-
-**Events:**
-- `created`: Global → flushAll(), Category → flushCategoryCache(), Product → flushForProduct()
-- `updated`: Aynı mantık
-- `deleted`: Aynı mantık
-- `restored`: Aynı mantık
-- `forceDeleted`: Aynı mantık
-
-**Kayıt:** `AppServiceProvider::boot()` içinde
-
----
-
 ## 📊 Enum'lar
 
 ### OrderStatus
@@ -660,19 +569,6 @@ New = 'NEW'
 Preparing = 'PREPARING'
 Completed = 'COMPLETED'
 Cancelled = 'CANCELLED'
-```
-
-### PriceRuleScope
-```php
-Global = 'global'
-Category = 'category'
-Product = 'product'
-```
-
-### PriceRuleType
-```php
-Percentage = 'percentage'
-Amount = 'amount'
 ```
 
 ---
@@ -795,7 +691,7 @@ Aşağıdaki alanlar backward compatibility için korunuyor ancak kullanılmamal
 
 2. **Snapshot Mantığı**: Sipariş oluşturulduğunda ürün bilgileri snapshot'lanır. Bu sayede ürün bilgileri değişse bile sipariş bilgileri korunur.
 
-3. **Fiyat Hesaplama**: Fiyatlar her zaman PriceEngine üzerinden hesaplanır. `final_price` alanı cache olarak kullanılabilir ama güvenilir kaynak PriceEngine'dir.
+3. **Fiyat Hesaplama**: Fiyatlar her zaman PriceEngine üzerinden hesaplanır. custom_price varsa ve > 0 ise custom_price, değilse base_price kullanılır. `final_price` alanı cache olarak kullanılabilir ama güvenilir kaynak PriceEngine'dir.
 
 4. **External Hash**: Ürün eşleştirmesi için deterministik hash kullanılır: `sha1("provider|uniqid")`. Bu sayede aynı external ürün her zaman aynı sistem ürününe eşleşir.
 
@@ -826,12 +722,9 @@ Aşağıdaki alanlar backward compatibility için korunuyor ancak kullanılmamal
 1. Product::calculatePrice() veya getFinalPriceAttribute() çağrılır
 2. PriceEngine::calculate() çağrılır
 3. Cache kontrolü (varsa döner)
-4. Base price alınır
-5. Aktif kurallar toplanır (Global → Category → Product)
-6. Priority'ye göre sıralanır
-7. Her kural uygulanır (percentage veya amount)
-8. Sonuç cache'lenir
-9. PriceResult döner
+4. custom_price varsa ve > 0 ise custom_price, değilse base_price alınır
+5. Sonuç cache'lenir
+6. PriceResult döner
 ```
 
 ### Sipariş Oluşturma Akışı

@@ -4,10 +4,14 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
 use Filament\Actions\EditAction;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class ViewProduct extends ViewRecord
 {
@@ -23,79 +27,146 @@ class ViewProduct extends ViewRecord
     public function infolist(Schema $schema): Schema
     {
         $record = $this->record;
-        $priceResult = $record->calculatePrice();
 
         return $schema
             ->components([
-                Section::make('Fiyat Hesaplama Detayları')
+                Section::make('Genel Bilgiler')
+                    ->schema([
+                        ImageEntry::make('default_image_url')
+                            ->label('Görsel')
+                            ->getStateUsing(fn () => $record->default_image_url)
+                            ->defaultImageUrl(url('/images/placeholder.png'))
+                            ->height(200)
+                            ->width(200)
+                            ->columnSpanFull(),
+                        TextEntry::make('name')
+                            ->label('Ürün Adı')
+                            ->icon(Heroicon::OutlinedCube)
+                            ->size('lg')
+                            ->weight('bold'),
+                        TextEntry::make('sku')
+                            ->label('SKU')
+                            ->icon(Heroicon::OutlinedHashtag)
+                            ->copyable(),
+                        IconEntry::make('is_active')
+                            ->label('Durum')
+                            ->boolean()
+                            ->trueIcon(Heroicon::OutlinedCheckCircle)
+                            ->falseIcon(Heroicon::OutlinedXCircle)
+                            ->trueColor('success')
+                            ->falseColor('danger'),
+                        TextEntry::make('sort_order')
+                            ->label('Sıralama')
+                            ->icon(Heroicon::OutlinedBars3),
+                        TextEntry::make('created_at')
+                            ->label('Oluşturulma Tarihi')
+                            ->dateTime('d/m/Y H:i')
+                            ->icon(Heroicon::OutlinedCalendar),
+                        TextEntry::make('updated_at')
+                            ->label('Güncelleme Tarihi')
+                            ->dateTime('d/m/Y H:i')
+                            ->icon(Heroicon::OutlinedClock),
+                    ])
+                    ->columns(2),
+                Section::make('Fiyatlar')
                     ->schema([
                         TextEntry::make('base_price')
                             ->label('Temel Fiyat')
                             ->money('TRY')
-                            ->icon('heroicon-o-currency-dollar'),
+                            ->icon(Heroicon::OutlinedCurrencyDollar),
+                        TextEntry::make('custom_price')
+                            ->label('Özel Fiyat')
+                            ->money('TRY')
+                            ->icon(Heroicon::OutlinedCurrencyDollar)
+                            ->placeholder('-')
+                            ->default('-'),
                         TextEntry::make('final_price')
                             ->label('Final Fiyat')
-                            ->formatStateUsing(fn () => '₺' . number_format($priceResult->final, 2))
-                            ->icon('heroicon-o-currency-dollar')
-                            ->color('success'),
-                        TextEntry::make('price_difference')
-                            ->label('Fark')
-                            ->formatStateUsing(fn () => '₺' . number_format($priceResult->getDifference(), 2))
-                            ->icon('heroicon-o-arrow-trending-up')
-                            ->color(fn () => $priceResult->getDifference() >= 0 ? 'success' : 'danger'),
-                        TextEntry::make('applied_rules_count')
-                            ->label('Uygulanan Kural Sayısı')
-                            ->formatStateUsing(fn () => count($priceResult->appliedRules))
-                            ->icon('heroicon-o-calculator'),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
-                Section::make('Uygulanan Kurallar')
-                    ->schema([
-                        TextEntry::make('applied_rules')
-                            ->label('Kurallar')
-                            ->formatStateUsing(function () use ($priceResult) {
-                                if (empty($priceResult->appliedRules)) {
-                                    return 'Henüz kural uygulanmadı.';
-                                }
-
-                                $html = '<div class="space-y-2">';
-                                foreach ($priceResult->appliedRules as $rule) {
-                                    $scopeLabel = match ($rule['scope']) {
-                                        'global' => 'Global',
-                                        'category' => 'Kategori',
-                                        'product' => 'Ürün',
-                                        default => $rule['scope'],
-                                    };
-                                    $typeLabel = match ($rule['type']) {
-                                        'percentage' => '%',
-                                        'amount' => '₺',
-                                        default => '',
-                                    };
-                                    $value = $rule['value'];
-                                    $difference = $rule['difference'];
-                                    $priceBefore = $rule['price_before'];
-                                    $priceAfter = $rule['price_after'];
-
-                                    $html .= '<div class="p-3 bg-gray-50 rounded-lg">';
-                                    $html .= "<strong>{$scopeLabel}</strong> - ";
-                                    $html .= "{$typeLabel}{$value} ";
-                                    $html .= "(Öncelik: {$rule['priority']})<br>";
-                                    $html .= "<small class='text-gray-600'>";
-                                    $html .= "₺" . number_format($priceBefore, 2) . " → ";
-                                    $html .= "₺" . number_format($priceAfter, 2);
-                                    $html .= " (" . ($difference >= 0 ? '+' : '') . "₺" . number_format($difference, 2) . ")";
-                                    $html .= "</small>";
-                                    $html .= '</div>';
-                                }
-                                $html .= '</div>';
-
-                                return new \Illuminate\Support\HtmlString($html);
+                            ->formatStateUsing(function () use ($record) {
+                                $result = $record->calculatePrice();
+                                return '₺' . number_format($result->final, 2);
                             })
-                            ->columnSpanFull(),
+                            ->icon(Heroicon::OutlinedCurrencyDollar)
+                            ->color('success'),
+                    ])
+                    ->columns(3)
+                    ->collapsible(),
+                Section::make('Kategoriler')
+                    ->schema([
+                        RepeatableEntry::make('categories')
+                            ->schema([
+                                TextEntry::make('display_name')
+                                    ->label('Kategori Adı')
+                                    ->icon(Heroicon::OutlinedTag),
+                                TextEntry::make('slug')
+                                    ->label('Slug')
+                                    ->icon(Heroicon::OutlinedHashtag)
+                                    ->copyable(),
+                                IconEntry::make('is_active')
+                                    ->label('Aktif')
+                                    ->boolean()
+                                    ->trueIcon(Heroicon::OutlinedCheckCircle)
+                                    ->falseIcon(Heroicon::OutlinedXCircle)
+                                    ->trueColor('success')
+                                    ->falseColor('danger'),
+                            ])
+                            ->columns(3),
                     ])
                     ->collapsible()
-                    ->visible(fn () => ! empty($priceResult->appliedRules)),
+                    ->visible(fn () => $record->categories()->count() > 0),
+                Section::make('Görseller')
+                    ->schema([
+                        TextEntry::make('images_count')
+                            ->label('Görsel Sayısı')
+                            ->formatStateUsing(fn () => $record->images()->count())
+                            ->icon(Heroicon::OutlinedPhoto),
+                        RepeatableEntry::make('images')
+                            ->schema([
+                                ImageEntry::make('url')
+                                    ->label('Görsel')
+                                    ->height(100)
+                                    ->width(100)
+                                    ->defaultImageUrl(url('/images/placeholder.png')),
+                                TextEntry::make('url')
+                                    ->label('URL')
+                                    ->copyable()
+                                    ->limit(50),
+                                IconEntry::make('is_primary')
+                                    ->label('Birincil')
+                                    ->boolean()
+                                    ->trueIcon(Heroicon::OutlinedStar)
+                                    ->falseIcon(Heroicon::OutlinedStar)
+                                    ->trueColor('warning')
+                                    ->falseColor('gray'),
+                                TextEntry::make('sort_order')
+                                    ->label('Sıralama')
+                                    ->icon(Heroicon::OutlinedBars3),
+                            ])
+                            ->columns(4),
+                    ])
+                    ->collapsible()
+                    ->visible(fn () => $record->images()->count() > 0),
+                Section::make('Harici Sağlayıcılar')
+                    ->schema([
+                        RepeatableEntry::make('externals')
+                            ->schema([
+                                TextEntry::make('provider_key')
+                                    ->label('Sağlayıcı')
+                                    ->badge()
+                                    ->icon(Heroicon::OutlinedGlobeAlt),
+                                TextEntry::make('external_uniqid')
+                                    ->label('Harici ID')
+                                    ->copyable()
+                                    ->icon(Heroicon::OutlinedHashtag),
+                                TextEntry::make('created_at')
+                                    ->label('Eşleştirme Tarihi')
+                                    ->dateTime('d/m/Y H:i')
+                                    ->icon(Heroicon::OutlinedCalendar),
+                            ])
+                            ->columns(3),
+                    ])
+                    ->collapsible()
+                    ->visible(fn () => $record->externals()->count() > 0),
             ]);
     }
 }

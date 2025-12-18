@@ -38,20 +38,12 @@ class EditOrder extends EditRecord
                         $totalPrice = round($item['total_price'] ?? ($unitPrice * $quantity - $lineDiscount), 2);
                         $lineTotal = round($item['line_total'] ?? $totalPrice, 2);
 
-                        // PriceEngine ile snapshot için fiyat hesapla
-                        $priceResult = $priceEngine->calculate($product);
-
                         // Sadece yeni item'lar için snapshot al (mevcut item'ların snapshot'ları korunur)
                         if (!isset($item['product_name_snapshot']) || empty($item['product_name_snapshot'])) {
                             $item['product_name_snapshot'] = $product->name;
                             $item['sku_snapshot'] = $product->sku;
                             $item['unit_price_snapshot'] = $unitPrice;
                             $item['line_total'] = $lineTotal;
-                            $item['price_rules_snapshot'] = [
-                                'base_price' => round($priceResult->base, 2),
-                                'final_price' => round($priceResult->final, 2),
-                                'applied_rules' => $priceResult->appliedRules,
-                            ];
                         } else {
                             // Mevcut item'lar için sadece line_total'ı güncelle
                             $item['line_total'] = $lineTotal;

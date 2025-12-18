@@ -12,6 +12,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
 use Filament\Forms\Components\DatePicker;
@@ -177,6 +179,53 @@ class ProductsTable
                     }),
             ])
             ->recordActions([
+                Action::make('quickPriceEdit')
+                    ->label('Hızlı Fiyat Düzenle')
+                    ->icon(Heroicon::OutlinedCurrencyDollar)
+                    ->color('warning')
+                    ->fillForm(fn ($record): array => [
+                        'base_price' => $record->base_price,
+                        'custom_price' => $record->custom_price,
+                    ])
+                    ->schema([
+                        TextInput::make('base_price')
+                            ->label('Temel Fiyat')
+                            ->numeric()
+                            ->prefix('₺')
+                            ->disabled()
+                            ->dehydrated(),
+                        TextInput::make('custom_price')
+                            ->label('Özel Fiyat')
+                            ->numeric()
+                            ->prefix('₺')
+                            ->step(0.01)
+                            ->minValue(0)
+                            ->helperText('Boş bırakılırsa temel fiyat kullanılır')
+                            ->belowContent(
+                                Action::make('setCustomPriceFromBase')
+                                    ->label('Baz Fiyat Ayarla')
+                                    ->icon(Heroicon::OutlinedArrowDown)
+                                    ->color('gray')
+                                    ->size('sm')
+                                    ->action(function (Get $get, Set $set) {
+                                        $basePrice = $get('base_price');
+                                        if ($basePrice) {
+                                            $set('custom_price', $basePrice);
+                                        }
+                                    })
+                            ),
+                    ])
+                    ->action(function (array $data, $record): void {
+                        $record->update([
+                            'base_price' => $data['base_price'],
+                            'custom_price' => $data['custom_price'] ?: null,
+                        ]);
+
+                        Notification::make()
+                            ->title('Fiyat başarıyla güncellendi')
+                            ->success()
+                            ->send();
+                    }),
                 RelationManagerAction::make('images')
                     ->label('Görseller')
                     ->icon('heroicon-o-photo')

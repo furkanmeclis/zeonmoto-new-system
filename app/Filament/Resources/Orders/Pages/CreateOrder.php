@@ -31,19 +31,11 @@ class CreateOrder extends CreateRecord
                         // line_total'ı mutlaka doldur - total_price'dan al veya hesapla
                         $lineTotal = round($item['line_total'] ?? $item['total_price'] ?? ($unitPrice * $quantity - $lineDiscount), 2);
 
-                        // PriceEngine ile snapshot için fiyat hesapla
-                        $priceResult = $priceEngine->calculate($product);
-
                         // Snapshot alanlarını doldur
                         $item['product_name_snapshot'] = $product->name;
                         $item['sku_snapshot'] = $product->sku;
                         $item['unit_price_snapshot'] = $unitPrice;
                         $item['line_total'] = $lineTotal;
-                        $item['price_rules_snapshot'] = [
-                            'base_price' => round($priceResult->base, 2),
-                            'final_price' => round($priceResult->final, 2),
-                            'applied_rules' => $priceResult->appliedRules,
-                        ];
 
                         // Deprecated alanları da doldur (backward compatibility)
                         $item['unit_price'] = $unitPrice;

@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\PriceRule;
-use App\Observers\PriceRuleObserver;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -32,7 +30,5 @@ class AppServiceProvider extends ServiceProvider
 
         Section::configureUsing(fn (Section $section) => $section
             ->columnSpanFull());
-
-        PriceRule::observe(PriceRuleObserver::class);
     }
 }

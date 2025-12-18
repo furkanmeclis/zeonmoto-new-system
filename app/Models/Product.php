@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\PriceRuleScope;
 use App\Services\Pricing\PriceEngine;
 use App\Services\Pricing\PriceResult;
 use Illuminate\Database\Eloquent\Model;
@@ -47,15 +46,6 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
-    }
-
-    /**
-     * Get price rules for this product.
-     */
-    public function priceRules(): HasMany
-    {
-        return $this->hasMany(PriceRule::class, 'scope_id')
-            ->where('scope', PriceRuleScope::Product->value);
     }
 
     /**

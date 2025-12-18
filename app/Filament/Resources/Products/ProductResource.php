@@ -50,7 +50,6 @@ class ProductResource extends Resource
         return [
             RelationManagers\ProductImagesRelationManager::class,
             RelationManagers\CategoriesRelationManager::class,
-            RelationManagers\PriceRulesRelationManager::class,
             RelationManagers\ProductExternalsRelationManager::class,
         ];
     }
