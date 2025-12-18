@@ -1,4 +1,4 @@
-# Moto-GPT Sistem Analizi ve Dokümantasyonu
+# ZeonMoto Sistem Analizi ve Dokümantasyonu
 
 ## 📋 İçindekiler
 1. [Sistem Amacı](#sistem-amacı)
@@ -16,7 +16,7 @@
 
 ## 🎯 Sistem Amacı
 
-**Moto-GPT**, motosiklet parçaları için bir e-ticaret yönetim sistemidir. Sistemin temel amacı:
+**ZeonMoto**, motosiklet parçaları için bir e-ticaret yönetim sistemidir. Sistemin temel amacı:
 
 1. **Dış Kaynak Entegrasyonu**: CKYMOTO servisinden ürün verilerini otomatik senkronize etme
 2. **Fiyat Yönetimi**: Esnek fiyat kuralı sistemi ile ürün fiyatlarını dinamik hesaplama
@@ -532,7 +532,7 @@ getUrlAttribute(): ?string - Custom için storage URL, external için proxy URL
 
 ### CKYMOTO API
 
-**Endpoint:** `https://ckymotoservice.com/api/moto-gpt-motor/export` (POST)
+**Endpoint:** `https://ckymotoservice.com/api/zeonmoto-motor/export` (POST)
 
 **Authentication:** Cookie-based
 

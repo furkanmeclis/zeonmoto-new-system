@@ -19,7 +19,7 @@
                     <div class="flex items-center space-x-3">
                         <x-filament::icon
                             icon="heroicon-o-clock"
-                            class="h-5 w-5 text-blue-500"
+                            class="h-5 w-5 text-amber-500"
                         />
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Senkronizasyon kuyruğa eklendi. Arka planda çalışacak.

@@ -48,8 +48,8 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\CategoriesRelationManager::class,
             RelationManagers\ProductImagesRelationManager::class,
+            RelationManagers\CategoriesRelationManager::class,
             RelationManagers\PriceRulesRelationManager::class,
             RelationManagers\ProductExternalsRelationManager::class,
         ];

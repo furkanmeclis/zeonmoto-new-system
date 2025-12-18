@@ -40,9 +40,11 @@ class ProductForm
                             ->numeric()
                             ->prefix('₺')
                             ->required()
-                            ->disabled()
+                            ->disabled(fn ($record, string $operation) => $operation === 'edit' && $record && $record->externals()->exists())
                             ->dehydrated()
-                            ->helperText('Harici sağlayıcıdan gelen temel fiyat'),
+                            ->helperText(fn ($record, string $operation) => ($operation === 'edit' && $record && $record->externals()->exists()) 
+                                ? 'Harici sağlayıcıdan gelen temel fiyat' 
+                                : 'Temel fiyat (harici sağlayıcıdan gelmiyorsa manuel girebilirsiniz)'),
                         TextInput::make('custom_price')
                             ->label('Özel Fiyat')
                             ->numeric()

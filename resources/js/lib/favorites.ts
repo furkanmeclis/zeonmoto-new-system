@@ -1,4 +1,4 @@
-const FAVORITES_STORAGE_KEY = 'moto_gpt_favorites'
+const FAVORITES_STORAGE_KEY = 'zeonmoto_favorites'
 
 export interface FavoriteProduct {
     id: number

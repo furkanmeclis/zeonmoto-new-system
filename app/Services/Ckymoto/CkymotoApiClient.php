@@ -15,7 +15,7 @@ class CkymotoApiClient
     public function __construct()
     {
         $config = config('services.ckymoto', []);
-        $this->apiUrl = $config['api_url'] ?? 'https://ckymotoservice.com/api/moto-gpt-motor/export';
+        $this->apiUrl = $config['api_url'] ?? 'https://ckymotoservice.com/api/zeonmoto-motor/export';
         $this->cookie = $config['cookie'] ?? null;
         $this->timeout = $config['timeout'] ?? 30;
     }

@@ -20,7 +20,7 @@
     "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-C03na6WG.css",
+    "file": "assets/app-DZAYM56P.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -29,18 +29,22 @@
     ]
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-CRFXvTlw.css",
-    "src": "resources/css/filament/admin/theme.css",
+    "file": "assets/theme-WEX3tKRb.css",
+    "src": "resources/css/filament/admin/theme.css"
+  },
+  "resources/js/app.tsx": {
+    "file": "assets/app-B-CeM9kb.js",
+    "name": "app",
+    "src": "resources/js/app.tsx",
+    "isEntry": true
+  },
+  "vendor/resma/filament-awin-theme/resources/css/theme.css": {
+    "file": "assets/theme-Cc3V6JS1.css",
+    "src": "vendor/resma/filament-awin-theme/resources/css/theme.css",
     "isEntry": true,
     "name": "theme",
     "names": [
       "theme.css"
     ]
-  },
-  "resources/js/app.tsx": {
-    "file": "assets/app-BjtE4_KM.js",
-    "name": "app",
-    "src": "resources/js/app.tsx",
-    "isEntry": true
   }
 }

@@ -15,6 +15,7 @@ use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Hydrat\TableLayoutToggle\TableLayoutTogglePlugin;
 use Hydrat\TableLayoutToggle\Persisters\LocalStoragePersister;
+use Resma\FilamentAwinTheme\FilamentAwinTheme;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -36,9 +37,10 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('3.5rem')
             ->favicon(asset('logo.png'))
             ->colors([
-                'primary' => Color::Cyan,
+                'primary' => Color::Amber,
             ])
             ->plugins([
+                FilamentAwinTheme::make(),
                 TableLayoutTogglePlugin::make()
                     ->setDefaultLayout('table')
                     ->persistLayoutUsing(

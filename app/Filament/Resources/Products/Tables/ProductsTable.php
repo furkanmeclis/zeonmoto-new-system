@@ -4,12 +4,16 @@ namespace App\Filament\Resources\Products\Tables;
 
 use AlperenErsoy\FilamentExport\Actions\FilamentExportBulkAction;
 use AlperenErsoy\FilamentExport\Actions\FilamentExportHeaderAction;
+use App\Filament\Resources\Products\RelationManagers\ProductImagesRelationManager;
 use App\Models\Category;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
+use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -173,6 +177,13 @@ class ProductsTable
                     }),
             ])
             ->recordActions([
+                RelationManagerAction::make('images')
+                    ->label('Görseller')
+                    ->icon('heroicon-o-photo')
+                    ->color('info')
+                    ->relationManager(ProductImagesRelationManager::make())
+                    ->record(fn ($record) => $record)
+                    ->compact(),
                 ViewAction::make(),
                 EditAction::make(),
             ])

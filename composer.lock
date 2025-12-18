@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c457aba950df0b5be9d163266ba6bde5",
+    "content-hash": "3979f3dcb79b09e9d199da922bd61ec5",
     "packages": [
         {
             "name": "alperenersoy/filament-export",
@@ -1895,6 +1895,87 @@
                 }
             ],
             "time": "2024-07-20T21:45:45+00:00"
+        },
+        {
+            "name": "guava/filament-modal-relation-managers",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/GuavaCZ/filament-modal-relation-managers.git",
+                "reference": "f1e8290ede9856a7b5ab3f95db2b9cd6ef17b767"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/GuavaCZ/filament-modal-relation-managers/zipball/f1e8290ede9856a7b5ab3f95db2b9cd6ef17b767",
+                "reference": "f1e8290ede9856a7b5ab3f95db2b9cd6ef17b767",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "illuminate/contracts": "^10.0|^11.0|^12.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.14.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.8|^8.1",
+                "nunomaduro/larastan": "^2.0.1",
+                "orchestra/testbench": "^8.8|^9.0|^10.0",
+                "pestphp/pest": "^2.0",
+                "pestphp/pest-plugin-arch": "^2.0",
+                "pestphp/pest-plugin-laravel": "^2.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0",
+                "phpstan/phpstan-phpunit": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "FilamentModalRelationManagers": "Guava\\FilamentModalRelationManagers\\Facades\\FilamentModalRelationManagers"
+                    },
+                    "providers": [
+                        "Guava\\FilamentModalRelationManagers\\FilamentModalRelationManagersServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Guava\\FilamentModalRelationManagers\\": "src/",
+                    "Guava\\FilamentModalRelationManagers\\Database\\Factories\\": "database/factories/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Lukas Frey",
+                    "email": "lukas.frey@guava.cz",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Allows you to embed relation managers inside filament modals.",
+            "homepage": "https://github.com/guavaCZ/filament-modal-relation-managers",
+            "keywords": [
+                "Guava",
+                "filament",
+                "filament-modal-relation-managers",
+                "filamentphp",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/GuavaCZ/filament-modal-relation-managers/issues",
+                "source": "https://github.com/GuavaCZ/filament-modal-relation-managers/tree/2.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/GuavaCZ",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-08-20T06:55:09+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
@@ -5428,6 +5509,69 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "time": "2025-12-14T04:43:48+00:00"
+        },
+        {
+            "name": "resma/filament-awin-theme",
+            "version": "v1.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/resmatech/filament-awin-theme.git",
+                "reference": "3e15436749d373631846e58f6bbc0962492b6437"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/resmatech/filament-awin-theme/zipball/3e15436749d373631846e58f6bbc0962492b6437",
+                "reference": "3e15436749d373631846e58f6bbc0962492b6437",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "FilamentAwinTheme": "Resma\\FilamentAwinTheme\\Facades\\FilamentAwinTheme"
+                    },
+                    "providers": []
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Resma\\FilamentAwinTheme\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Rebwar Mustafa",
+                    "email": "hello@resma.tech",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A modern, responsive, and customizable theme for FilamentPHP, designed to elevate your admin panel with a sleek interface and seamless user experience.",
+            "homepage": "https://github.com/resmatech/filament-awin-theme",
+            "keywords": [
+                "Resma",
+                "filament",
+                "filament-awin-theme",
+                "filamentphp",
+                "laravel",
+                "theme"
+            ],
+            "support": {
+                "issues": "https://github.com/resmatech/filament-awin-theme/issues",
+                "source": "https://github.com/resmatech/filament-awin-theme"
+            },
+            "time": "2025-11-21T06:42:48+00:00"
         },
         {
             "name": "ryangjchandler/blade-capture-directive",

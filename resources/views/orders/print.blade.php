@@ -169,7 +169,7 @@
         }
 
         .no-print button {
-            background: #3b82f6;
+            background: #f59e0b;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -179,7 +179,7 @@
         }
 
         .no-print button:hover {
-            background: #2563eb;
+            background: #d97706;
         }
     </style>
 </head>

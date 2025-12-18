@@ -8,6 +8,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -92,6 +93,50 @@ class ProductImagesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
+                Action::make('quickUpload')
+                    ->label('Hızlı Resim Yükle')
+                    ->icon('heroicon-o-photo')
+                    ->color('success')
+                    ->form([
+                        FileUpload::make('images')
+                            ->label('Görseller')
+                            ->disk('public')
+                            ->visibility('public')
+                            ->image()
+                            ->directory(fn () => "products/{$this->ownerRecord->id}/custom")
+                            ->multiple()
+                            ->maxFiles(20)
+                            ->maxSize(5120) // 5MB
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->required()
+                            ->helperText('Birden fazla görsel seçebilirsiniz (maksimum 20 adet)'),
+                    ])
+                    ->action(function (array $data): void {
+                        $images = $data['images'] ?? [];
+                        $productId = $this->ownerRecord->id;
+                        $maxSortOrder = $this->ownerRecord->images()->max('sort_order') ?? 0;
+                        $isFirstImage = $this->ownerRecord->images()->count() === 0;
+
+                        $uploadedCount = 0;
+                        foreach ($images as $index => $imagePath) {
+                            $maxSortOrder++;
+                            
+                            ProductImage::create([
+                                'product_id' => $productId,
+                                'type' => 'custom',
+                                'path' => $imagePath,
+                                'is_primary' => $isFirstImage && $index === 0,
+                                'sort_order' => $maxSortOrder,
+                            ]);
+
+                            $uploadedCount++;
+                        }
+
+                        Notification::make()
+                            ->title("{$uploadedCount} görsel başarıyla yüklendi")
+                            ->success()
+                            ->send();
+                    }),
                 CreateAction::make()
                     ->label('Görsel Ekle')
                     ->mutateFormDataUsing(function (array $data): array {
