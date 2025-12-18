@@ -30,9 +30,16 @@ class CategoryResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Kategoriler';
 
+    protected static ?string $recordTitleAttribute = 'display_name';
+
     public static function getTitleAttribute(): ?string
     {
         return 'display_name';
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['display_name', 'external_name', 'slug'];
     }
 
     public static function form(Schema $schema): Schema

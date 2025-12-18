@@ -30,9 +30,16 @@ class UserResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Kullanıcılar';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getTitleAttribute(): ?string
     {
         return 'name';
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'email'];
     }
 
     public static function form(Schema $schema): Schema

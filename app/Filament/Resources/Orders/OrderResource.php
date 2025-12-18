@@ -30,6 +30,13 @@ class OrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Siparişler';
 
+    protected static ?string $recordTitleAttribute = 'order_no';
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['order_no'];
+    }
+
     public static function form(Schema $schema): Schema
     {
         return OrderForm::configure($schema);

@@ -5,36 +5,30 @@ namespace App\Filament\Widgets;
 use App\Models\Order;
 use App\OrderStatus;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Carbon;
 
 class RevenueChartWidget extends ChartWidget
 {
-    protected static ?int $sort = 4;
-
     protected ?string $heading = 'Gelir Trendi (Son 30 Gün)';
 
-    public function getDescription(): ?string
-    {
-        return 'Son 30 gün içindeki günlük gelir miktarları';
-    }
+    protected static ?int $sort = 4;
 
-    protected int | string | array $columnSpan = [
-        'md' => 2,
-        'xl' => 1,
-    ];
+    protected int | string | array $columnSpan = 'full';
 
     protected function getData(): array
     {
-        $labels = [];
         $data = [];
+        $labels = [];
 
-        // Son 30 günlük verileri topla
+        // Son 30 günün gelir verilerini topla
         for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $labels[] = $date->format('d M');
-            $revenue = (float) Order::where('status', '!=', OrderStatus::Cancelled)
+            $date = Carbon::now()->subDays($i);
+            $revenue = Order::where('status', OrderStatus::Completed)
                 ->whereDate('created_at', $date)
-                ->sum('total');
-            $data[] = round($revenue, 2);
+                ->sum('total') ?? 0;
+
+            $data[] = $revenue;
+            $labels[] = $date->format('d.m');
         }
 
         return [
@@ -42,9 +36,8 @@ class RevenueChartWidget extends ChartWidget
                 [
                     'label' => 'Gelir (₺)',
                     'data' => $data,
-                    'backgroundColor' => 'rgba(34, 197, 94, 0.5)',
-                    'borderColor' => 'rgba(34, 197, 94, 1)',
-                    'borderWidth' => 2,
+                    'borderColor' => 'rgb(34, 197, 94)',
+                    'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
                     'fill' => true,
                     'tension' => 0.4,
                 ],
@@ -61,22 +54,21 @@ class RevenueChartWidget extends ChartWidget
     protected function getOptions(): array
     {
         return [
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'ticks' => [
+                        'callback' => 'function(value) { return "₺" + value.toLocaleString("tr-TR"); }',
+                    ],
+                ],
+            ],
             'plugins' => [
                 'legend' => [
                     'display' => true,
                 ],
                 'tooltip' => [
-                    'enabled' => true,
                     'callbacks' => [
-                        'label' => "function(context) { return '₺' + context.parsed.y.toLocaleString('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }",
-                    ],
-                ],
-            ],
-            'scales' => [
-                'y' => [
-                    'beginAtZero' => true,
-                    'ticks' => [
-                        'callback' => "function(value) { return '₺' + value.toLocaleString('tr-TR'); }",
+                        'label' => 'function(context) { return "₺" + context.parsed.y.toLocaleString("tr-TR"); }',
                     ],
                 ],
             ],

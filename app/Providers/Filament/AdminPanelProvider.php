@@ -40,7 +40,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->plugins([
-                FilamentAwinTheme::make(),
+                FilamentAwinTheme::make()->primaryColor(Color::Amber),
                 TableLayoutTogglePlugin::make()
                     ->setDefaultLayout('table')
                     ->persistLayoutUsing(
@@ -57,11 +57,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                \App\Filament\Widgets\StatsOverviewWidget::class,
-                \App\Filament\Widgets\RecentOrdersWidget::class,
-                \App\Filament\Widgets\OrdersChartWidget::class,
-                \App\Filament\Widgets\RevenueChartWidget::class,
-                \App\Filament\Widgets\OrderStatusWidget::class,
+                
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -78,6 +74,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->spa()
-            ->maxContentWidth(Width::Full);
+            ->maxContentWidth(Width::Full)
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchDebounce('300ms');
     }
 }

@@ -12,12 +12,12 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 12px;
-            line-height: 1.5;
-            color: #333;
-            padding: 20px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #000;
             background: #fff;
+            padding: 15px;
         }
 
         @media print {
@@ -31,155 +31,197 @@
 
             @page {
                 margin: 1cm;
+                size: A4;
             }
         }
 
         .container {
-            max-width: 800px;
+            max-width: 100%;
             margin: 0 auto;
-            background: #fff;
+        }
+
+        .no-print {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .no-print button {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        .no-print button:hover {
+            background: #555;
         }
 
         .header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .header-top {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
 
         .logo {
-            max-height: 60px;
-            max-width: 200px;
-            object-fit: contain;
+            max-height: 50px;
+            max-width: 150px;
         }
 
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
+        .company-info h1 {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .header-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
+        .company-info p {
+            font-size: 11px;
+            color: #666;
         }
 
-        .info-section {
-            margin-bottom: 25px;
+        .order-info {
+            text-align: right;
         }
 
-        .info-section h2 {
-            font-size: 16px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
+        .order-info h2 {
+            font-size: 18px;
+            font-weight: bold;
             margin-bottom: 10px;
         }
 
         .info-row {
-            display: flex;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .info-row strong {
+            font-weight: bold;
+        }
+
+        .content-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            border: 1px solid #000;
+            padding: 10px;
+        }
+
+        .info-box h3 {
+            font-size: 12px;
+            font-weight: bold;
             margin-bottom: 8px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+        }
+
+        .info-item {
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
         }
 
         .info-label {
             font-weight: bold;
-            width: 150px;
-        }
-
-        .info-value {
-            flex: 1;
+            display: inline-block;
+            width: 80px;
         }
 
         .table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .table th,
         .table td {
-            padding: 10px;
+            border: 1px solid #000;
+            padding: 8px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .product-thumbnail {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            font-size: 10px;
         }
 
         .table th {
-            background-color: #f5f5f5;
+            background: #f0f0f0;
             font-weight: bold;
+            text-align: center;
         }
 
-        .table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .text-right {
-            text-align: right;
+        .table td {
+            vertical-align: top;
         }
 
         .text-center {
             text-align: center;
         }
 
-        .total-section {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid #333;
+        .text-right {
+            text-align: right;
+        }
+
+        .product-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+
+        .totals {
+            margin-top: 15px;
+            width: 100%;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
+            padding: 5px 0;
+            border-bottom: 1px solid #000;
+            font-size: 11px;
         }
 
         .total-row.final {
-            font-size: 18px;
-            font-weight: bold;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
             margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #000;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #666;
-        }
-
-        .no-print {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .no-print button {
-            background: #f59e0b;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        .no-print button:hover {
-            background: #d97706;
         }
     </style>
 </head>
@@ -187,76 +229,92 @@
     <div class="container">
         <div class="no-print">
             <button onclick="window.print()">Yazdır</button>
-            <button onclick="window.close()" style="background: #6b7280; margin-left: 10px;">Kapat</button>
+            <button onclick="window.close()">Kapat</button>
         </div>
 
         <div class="header">
             <div class="header-top">
-                <img src="{{ asset('logo.png') }}" alt="Logo" class="logo">
-                <div>
-                    <h1 style="margin: 0 0 5px 0;">{{ env('APP_NAME', 'Firma Adı') }}</h1>
-                    <h2 style="font-size: 18px; margin: 0; color: #666;">SİPARİŞ DETAYI</h2>
+                <div class="company-info">
+                    <img src="{{ asset('logo.png') }}" alt="Logo" class="logo">
+                    <h1>{{ env('APP_NAME', 'Firma Adı') }}</h1>
+                    <p>Sipariş Belgesi</p>
                 </div>
-            </div>
-            <div class="header-info">
-                <div>
+                <div class="order-info">
+                    <h2>SİPARİŞ</h2>
                     <div class="info-row">
-                        <span class="info-label">Sipariş No:</span>
-                        <span class="info-value"><strong>{{ $order->order_no }}</strong></span>
+                        <strong>Sipariş No:</strong> {{ $order->order_no }}
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Tarih:</span>
-                        <span class="info-value">{{ $order->created_at->format('d.m.Y H:i') }}</span>
+                        <strong>Tarih:</strong> {{ $order->created_at->format('d.m.Y H:i') }}
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Durum:</span>
-                        <span class="info-value">{{ $order->status->label() }}</span>
+                        <strong>Durum:</strong> {{ $order->status->label() }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="info-section">
-            <h2>Müşteri Bilgileri</h2>
-            <div class="info-row">
-                <span class="info-label">Ad Soyad:</span>
-                <span class="info-value">{{ $order->customer->full_name ?? '-' }}</span>
+        <div class="content-section">
+            <div class="info-grid">
+                <div class="info-box">
+                    <h3>Müşteri Bilgileri</h3>
+                    <div class="info-item">
+                        <span class="info-label">Ad Soyad:</span>
+                        <span>{{ $order->customer->full_name ?? '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Telefon:</span>
+                        <span>{{ $order->customer->phone ?? '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Şehir:</span>
+                        <span>{{ $order->customer->city ?? '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">İlçe:</span>
+                        <span>{{ $order->customer->district ?? '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Adres:</span>
+                        <span>{{ $order->customer->address ?? '-' }}</span>
+                    </div>
+                    @if($order->customer->note)
+                    <div class="info-item">
+                        <span class="info-label">Not:</span>
+                        <span>{{ $order->customer->note }}</span>
+                    </div>
+                    @endif
+                </div>
+
+                <div class="info-box">
+                    <h3>Sipariş Bilgileri</h3>
+                    <div class="info-item">
+                        <span class="info-label">Toplam Kalem:</span>
+                        <span>{{ $order->orderItems->count() }} ürün</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Toplam Adet:</span>
+                        <span>{{ $order->orderItems->sum('quantity') }} adet</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Para Birimi:</span>
+                        <span>{{ $order->currency }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="info-row">
-                <span class="info-label">Telefon:</span>
-                <span class="info-value">{{ $order->customer->phone ?? '-' }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Şehir:</span>
-                <span class="info-value">{{ $order->customer->city ?? '-' }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">İlçe:</span>
-                <span class="info-value">{{ $order->customer->district ?? '-' }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Adres:</span>
-                <span class="info-value">{{ $order->customer->address ?? '-' }}</span>
-            </div>
-            @if($order->customer->note)
-            <div class="info-row">
-                <span class="info-label">Not:</span>
-                <span class="info-value">{{ $order->customer->note }}</span>
-            </div>
-            @endif
         </div>
 
-        <div class="info-section">
-            <h2>Sipariş Kalemleri</h2>
+        <div class="content-section">
+            <h3 class="section-title">Sipariş Kalemleri</h3>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Görsel</th>
+                        <th style="width: 50px;">Görsel</th>
                         <th>Ürün Adı</th>
-                        <th>SKU</th>
-                        <th class="text-center">Adet</th>
-                        <th class="text-right">Birim Fiyat</th>
-                        <th class="text-right">Toplam</th>
+                        <th style="width: 100px;">SKU</th>
+                        <th style="width: 60px;" class="text-center">Adet</th>
+                        <th style="width: 100px;" class="text-right">Birim Fiyat</th>
+                        <th style="width: 100px;" class="text-right">Toplam</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -264,9 +322,11 @@
                     <tr>
                         <td class="text-center">
                             @if($item->product && $item->product->default_image_url)
-                                <img src="{{ $item->product->default_image_url }}" alt="{{ $item->product_name_snapshot ?? 'Ürün' }}" class="product-thumbnail">
+                                <img src="{{ $item->product->default_image_url }}" 
+                                     alt="{{ $item->product_name_snapshot ?? 'Ürün' }}" 
+                                     class="product-image">
                             @else
-                                <span style="color: #999;">-</span>
+                                <span>-</span>
                             @endif
                         </td>
                         <td>{{ $item->product_name_snapshot ?? '-' }}</td>
@@ -284,7 +344,7 @@
             </table>
         </div>
 
-        <div class="total-section">
+        <div class="totals">
             <div class="total-row">
                 <span>Ara Toplam:</span>
                 <span>{{ number_format($order->subtotal ?? 0, 2) }} {{ $order->currency }}</span>
@@ -304,7 +364,6 @@
     </div>
 
     <script>
-        // Sayfa yüklendiğinde otomatik print dialog aç
         window.onload = function() {
             setTimeout(function() {
                 window.print();

@@ -6,12 +6,14 @@ use App\Models\Order;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-
+use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Resources\Customers\CustomerResource;
 class RecentOrdersWidget extends BaseWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected static ?string $heading = 'Son Siparişler';
 
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 3;
+
 
     public function table(Table $table): Table
     {
@@ -27,15 +29,19 @@ class RecentOrdersWidget extends BaseWidget
                     ->label('Sipariş No')
                     ->searchable()
                     ->sortable()
-                    ->copyable(),
+                    ->url(fn ($record) => OrderResource::getUrl('view', ['record' => $record])),
+                
                 TextColumn::make('customer.full_name')
                     ->label('Müşteri')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(['first_name', 'last_name'])
+                    ->sortable()
+                    ->url(fn ($record) => CustomerResource::getUrl('view', ['record' => $record])),
+                
                 TextColumn::make('total')
-                    ->label('Toplam')
+                    ->label('Tutar')
                     ->money('TRY')
                     ->sortable(),
+                
                 TextColumn::make('status')
                     ->label('Durum')
                     ->badge()
@@ -54,13 +60,16 @@ class RecentOrdersWidget extends BaseWidget
                         \App\OrderStatus::Completed => 'Tamamlandı',
                         \App\OrderStatus::Cancelled => 'İptal Edildi',
                         default => $state?->value ?? '-',
-                    }),
+                    })
+                    ->sortable(),
+                
                 TextColumn::make('created_at')
                     ->label('Tarih')
-                    ->dateTime()
+                    ->dateTime('d.m.Y H:i')
                     ->sortable(),
+                
             ])
-            ->heading('Son Siparişler')
             ->defaultSort('created_at', 'desc');
     }
 }
+

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Customers\RelationManagers;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -34,7 +35,11 @@ class OrdersRelationManager extends RelationManager
                 TextColumn::make('total')
                     ->label('Toplam Tutar')
                     ->money('TRY')
-                    ->sortable(),
+                    ->sortable()
+                    ->summarize(
+                        Sum::make()
+                            ->label('Toplam Harcama')
+                    ),
                 TextColumn::make('status')
                     ->label('Durum')
                     ->badge()
@@ -60,12 +65,6 @@ class OrdersRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->summary([
-                TextColumn::make('total')
-                    ->label('Toplam Harcama')
-                    ->sum('total')
-                    ->money('TRY'),
-            ])
             ->filters([
                 //
             ])

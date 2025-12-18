@@ -36,7 +36,7 @@ return [
     ],
 
     'ckymoto' => [
-        'api_url' => env('CKYMOTO_API_URL', 'https://ckymotoservice.com/api/moto-gpt-motor/export'),
+        'api_url' => env('CKYMOTO_API_URL', 'https://ckymotoservice.com/api/zeonmoto/export'),
         'cookie' => env('CKYMOTO_COOKIE'),
         'timeout' => env('CKYMOTO_TIMEOUT', 30),
     ],

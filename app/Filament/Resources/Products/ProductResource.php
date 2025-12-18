@@ -30,9 +30,16 @@ class ProductResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Ürünler';
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     public static function getTitleAttribute(): ?string
     {
         return 'name';
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['name', 'sku'];
     }
 
     public static function form(Schema $schema): Schema

@@ -5,83 +5,79 @@ namespace App\Filament\Widgets;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
-use App\OrderStatus;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Number;
 
 class StatsOverviewWidget extends BaseWidget
 {
-    protected static ?int $sort = 1;
-
     protected function getStats(): array
     {
-        // Son 7 günlük sipariş trendi
-        $ordersTrend = [];
+        $totalOrders = Order::count();
+        $totalRevenue = Order::where('status', \App\OrderStatus::Completed)->sum('total');
+        $totalCustomers = Customer::count();
+        $totalProducts = Product::count();
+        $activeProducts = Product::where('is_active', true)->count();
+
+        // Son 7 günün sipariş sayısı (chart için)
+        $ordersLast7Days = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $ordersTrend[] = Order::whereDate('created_at', $date)->count();
+            $ordersLast7Days[] = Order::whereDate('created_at', $date)->count();
         }
 
-        // Son 7 günlük gelir trendi
-        $revenueTrend = [];
+        // Son 7 günün geliri (chart için)
+        $revenueLast7Days = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
-            $revenueTrend[] = (float) Order::where('status', '!=', OrderStatus::Cancelled)
+            $revenueLast7Days[] = Order::where('status', \App\OrderStatus::Completed)
                 ->whereDate('created_at', $date)
-                ->sum('total');
+                ->sum('total') ?? 0;
         }
 
-        // Son 7 günlük müşteri trendi
-        $customersTrend = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $customersTrend[] = Customer::whereDate('created_at', $date)->count();
-        }
+        // Bugünkü sipariş sayısı
+        $todayOrders = Order::whereDate('created_at', today())->count();
+        $yesterdayOrders = Order::whereDate('created_at', today()->subDay())->count();
+        $ordersChange = $yesterdayOrders > 0 
+            ? round((($todayOrders - $yesterdayOrders) / $yesterdayOrders) * 100, 1)
+            : ($todayOrders > 0 ? 100 : 0);
 
-        // Bu ay toplam gelir
-        $monthlyRevenue = Order::where('status', '!=', OrderStatus::Cancelled)
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->sum('total');
-
-        // Geçen ay toplam gelir
-        $lastMonthRevenue = Order::where('status', '!=', OrderStatus::Cancelled)
-            ->whereMonth('created_at', now()->subMonth()->month)
-            ->whereYear('created_at', now()->subMonth()->year)
-            ->sum('total');
-
-        // Gelir değişim yüzdesi
-        $revenueChange = $lastMonthRevenue > 0 
-            ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
-            : 0;
+        // Bugünkü gelir
+        $todayRevenue = Order::where('status', \App\OrderStatus::Completed)
+            ->whereDate('created_at', today())
+            ->sum('total') ?? 0;
+        $yesterdayRevenue = Order::where('status', \App\OrderStatus::Completed)
+            ->whereDate('created_at', today()->subDay())
+            ->sum('total') ?? 0;
+        $revenueChange = $yesterdayRevenue > 0 
+            ? round((($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
+            : ($todayRevenue > 0 ? 100 : 0);
 
         return [
-            Stat::make('Toplam Ürün', Product::count())
-                ->description('Aktif: ' . Product::where('is_active', true)->count())
-                ->descriptionIcon('heroicon-o-cube')
-                ->color('success')
-                ->chart($ordersTrend),
-
-            Stat::make('Toplam Sipariş', Order::count())
-                ->description('Yeni: ' . Order::where('status', OrderStatus::New)->count())
-                ->descriptionIcon('heroicon-o-shopping-cart')
-                ->color('info')
-                ->chart($ordersTrend),
-
-            Stat::make('Toplam Müşteri', Customer::count())
-                ->description('Son 30 gün: ' . Customer::where('created_at', '>=', now()->subDays(30))->count())
-                ->descriptionIcon('heroicon-o-users')
-                ->color('warning')
-                ->chart($customersTrend),
-
-            Stat::make('Toplam Ciro', '₺' . number_format(Order::where('status', '!=', OrderStatus::Cancelled)->sum('total'), 2, ',', '.'))
-                ->description(
-                    'Bu ay: ₺' . number_format($monthlyRevenue, 2, ',', '.') . 
-                    ($revenueChange != 0 ? ' (' . ($revenueChange > 0 ? '+' : '') . $revenueChange . '%)' : '')
-                )
+            Stat::make('Toplam Sipariş', Number::format($totalOrders))
+                ->description($ordersChange >= 0 ? '+' . $ordersChange . '% artış' : $ordersChange . '% azalış')
+                ->descriptionIcon($ordersChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+                ->descriptionColor($ordersChange >= 0 ? 'success' : 'danger')
+                ->chart($ordersLast7Days)
+                ->color('primary'),
+            
+            Stat::make('Toplam Gelir', Number::currency($totalRevenue, 'TRY'))
+                ->description($revenueChange >= 0 ? '+' . $revenueChange . '% artış' : $revenueChange . '% azalış')
                 ->descriptionIcon($revenueChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->color('success')
-                ->chart($revenueTrend),
+                ->descriptionColor($revenueChange >= 0 ? 'success' : 'danger')
+                ->chart($revenueLast7Days)
+                ->color('success'),
+            
+            Stat::make('Toplam Müşteri', Number::format($totalCustomers))
+                ->description('Kayıtlı müşteri sayısı')
+                ->descriptionIcon('heroicon-m-user-group')
+                ->color('info'),
+            
+            Stat::make('Toplam Ürün', Number::format($totalProducts))
+                ->description($activeProducts . ' aktif ürün')
+                ->descriptionIcon('heroicon-m-cube')
+                ->color('warning'),
         ];
     }
 }
+
