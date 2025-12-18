@@ -1,0 +1,312 @@
+# Filament v4 Best Practices ve Kuralları
+
+Bu dosya, Filament v4 projesinde kod kalitesi, tip güvenliği ve best practices için kuralları içerir.
+
+## Genel Kurallar
+
+### 1. Type Hints ve BackedEnum Kullanımı
+- `$navigationIcon` property'si **MUTLAKA** `string | BackedEnum | null` tipinde tanımlanmalıdır
+- `protected static string | BackedEnum | null $navigationIcon` formatını kullanın
+- ❌ YANLIŞ: `protected static ?string $navigationIcon`
+- ✅ DOĞRU: `protected static string | BackedEnum | null $navigationIcon`
+
+### 2. Resource Yapısı ve Kod Organizasyonu
+
+#### Schema ve Table Sınıfları
+- Form ve table tanımlarını **MUTLAKA** ayrı schema ve table sınıflarında tutun
+- Resource sınıfında sadece `configure()` metodunu çağırın
+- ❌ YANLIŞ: Resource sınıfında uzun form/table tanımları
+- ✅ DOĞRU: `Schemas/ResourceForm::configure()` ve `Tables/ResourceTable::configure()` kullanımı
+
+#### Örnek Yapı:
+```php
+// UserResource.php
+public static function form(Schema $schema): Schema
+{
+    return UserForm::configure($schema);
+}
+
+public static function table(Table $table): Table
+{
+    return UsersTable::configure($table);
+}
+```
+
+### 3. Password Field Best Practices
+
+#### Create ve Edit Sayfalarında Password
+- Create sayfasında: Password **zorunlu** olmalı
+- Edit sayfasında: Password **opsiyonel** olmalı (boş bırakılırsa mevcut şifre korunmalı)
+
+```php
+TextInput::make('password')
+    ->password()
+    ->required(fn (string $operation): bool => $operation === 'create')
+    ->dehydrated(fn ($state): bool => filled($state))
+    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
+    ->minLength(8)
+    ->label('Password')
+    ->helperText(fn (string $operation): string => 
+        $operation === 'edit' ? 'Leave blank to keep current password' : ''
+    )
+```
+
+#### Password Hash'leme
+- **MUTLAKA** `Hash::make()` kullanın
+- `dehydrateStateUsing()` ile hash'leme yapın
+- `dehydrated()` ile boş değerleri atlayın
+
+### 4. Resource Property Tanımları
+
+#### Navigation Icon
+```php
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+
+protected static string | BackedEnum | null $navigationIcon = Heroicon::OutlinedRectangleStack;
+// veya
+protected static string | BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
+```
+
+#### Navigation Label ve Model Labels
+```php
+protected static ?string $navigationLabel = 'Users';
+protected static ?string $modelLabel = 'User';
+protected static ?string $pluralModelLabel = 'Users';
+```
+
+#### Navigation Group
+- `$navigationGroup` property'si **MUTLAKA** `string | UnitEnum | null` tipinde tanımlanmalıdır
+- `protected static string | UnitEnum | null $navigationGroup` formatını kullanın
+- ❌ YANLIŞ: `protected static ?string $navigationGroup`
+- ✅ DOĞRU: `protected static string | UnitEnum | null $navigationGroup`
+- `UnitEnum` import'u eklenmelidir: `use UnitEnum;`
+
+#### Title Attribute
+```php
+public static function getTitleAttribute(): ?string
+{
+    return 'name'; // veya başka bir field
+}
+```
+
+### 5. Form Field Validation
+
+#### Email Field
+```php
+TextInput::make('email')
+    ->email()
+    ->required()
+    ->unique(ignoreRecord: true)
+    ->maxLength(255)
+```
+
+#### Required Fields
+- Operation'a göre conditional required kullanın
+- `required(fn (string $operation): bool => $operation === 'create')` formatını tercih edin
+
+### 6. Table Column Best Practices
+
+#### TextColumn
+```php
+TextColumn::make('name')
+    ->searchable()
+    ->sortable()
+```
+
+#### IconColumn (Boolean Değerler İçin)
+```php
+IconColumn::make('email_verified_at')
+    ->label('Verified')
+    ->boolean()
+    ->trueIcon('heroicon-o-check-circle')
+    ->falseIcon('heroicon-o-x-circle')
+    ->trueColor('success')
+    ->falseColor('danger')
+    ->sortable()
+```
+
+#### Copyable Columns
+```php
+TextColumn::make('email')
+    ->copyable() // Kullanıcı tıklayarak kopyalayabilir
+```
+
+### 7. Action Tanımları
+
+#### Record Actions (Satır Aksiyonları)
+```php
+->recordActions([
+    ViewAction::make(),
+    EditAction::make(),
+])
+```
+
+#### Header Actions (Sayfa Üstü Aksiyonlar)
+```php
+protected function getHeaderActions(): array
+{
+    return [
+        DeleteAction::make(),
+        // diğer aksiyonlar
+    ];
+}
+```
+
+#### Bulk Actions (Toplu Aksiyonlar)
+```php
+->toolbarActions([
+    BulkActionGroup::make([
+        DeleteBulkAction::make(),
+    ]),
+])
+```
+
+### 8. Import Statement'ları ve Namespace Kuralları
+
+#### Filament v4 Namespace Değişiklikleri
+**KRİTİK:** Filament v4'te component namespace'leri değişmiştir!
+
+##### Layout Component'leri (Schema Component'leri)
+- Layout component'leri artık `Filament\Schemas\Components` namespace'inde
+- ❌ YANLIŞ: `use Filament\Forms\Components\Section;`
+- ✅ DOĞRU: `use Filament\Schemas\Components\Section;`
+- ✅ DOĞRU: `use Filament\Schemas\Components\Grid;`
+
+##### Form Component'leri
+- Form component'leri hala `Filament\Forms\Components` namespace'inde
+- ✅ DOĞRU: `use Filament\Forms\Components\TextInput;`
+- ✅ DOĞRU: `use Filament\Forms\Components\Select;`
+- ✅ DOĞRU: `use Filament\Forms\Components\Toggle;`
+- ✅ DOĞRU: `use Filament\Forms\Components\DateTimePicker;`
+- ✅ DOĞRU: `use Filament\Forms\Components\Textarea;`
+- ✅ DOĞRU: `use Filament\Forms\Components\FileUpload;`
+
+#### Örnek Import Yapısı
+```php
+// Layout component'leri
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+
+// Form component'leri
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+
+// Schema ve Table
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+```
+
+#### Gerekli Import'lar
+```php
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Hash;
+use UnitEnum;
+```
+
+### 9. Resource Pages
+
+#### Sayfa Tanımları
+```php
+public static function getPages(): array
+{
+    return [
+        'index' => ListUsers::route('/'),
+        'create' => CreateUser::route('/create'),
+        'view' => ViewUser::route('/{record}'),
+        'edit' => EditUser::route('/{record}/edit'),
+    ];
+}
+```
+
+#### Page Sınıfları
+- Her sayfa için ayrı bir sınıf kullanın
+- `CreateRecord`, `EditRecord`, `ViewRecord`, `ListRecords` extend edin
+- Header actions'ı `getHeaderActions()` metoduyla tanımlayın
+
+### 10. Type Safety Kontrolleri
+
+#### PHP Type Declarations
+- Tüm metod parametrelerinde tip tanımları kullanın
+- Return type'ları belirtin
+- Union types doğru kullanın: `string | BackedEnum | null`
+
+### 11. Security Best Practices
+
+#### External API Kullanımı
+- Authentication/Authorization implementasyonu
+- Input validation
+- Error handling
+- Rate limiting
+- Güvenlik önlemleri
+
+### 12. Code Quality
+
+#### Dosya Boyutu
+- Uzun metodlardan kaçının
+- Schema ve Table sınıflarına ayırın
+- Component class'ları kullanın
+
+#### Reusable Components
+```php
+class CustomerForm
+{
+    public static function configure(Schema $schema): Schema { }
+    
+    public static function getNameFormField(): TextInput { }
+    
+    public static function getSlugFormField(): TextInput { }
+}
+```
+
+### 13. Hata Önleme Checklist
+
+✅ `$navigationIcon` tipi `string | BackedEnum | null` olmalı
+✅ `$navigationGroup` tipi `string | UnitEnum | null` olmalı
+✅ Password field'ları operation'a göre conditional required olmalı
+✅ Password hash'leme `dehydrateStateUsing()` ile yapılmalı
+✅ Form ve Table ayrı sınıflarda olmalı
+✅ Import statement'ları doğru olmalı
+✅ **Layout component'leri (Section, Grid) `Filament\Schemas\Components` namespace'inde olmalı**
+✅ **Form component'leri (TextInput, Select, vb.) `Filament\Forms\Components` namespace'inde olmalı**
+✅ Type hints kullanılmalı
+✅ Email field'ları `unique(ignoreRecord: true)` içermeli
+
+### 14. Common Mistakes (Sık Yapılan Hatalar)
+
+❌ `protected static ?string $navigationIcon` - BackedEnum tipi eksik
+❌ `protected static ?string $navigationGroup` - UnitEnum tipi eksik
+❌ Password field edit'te required - Boş bırakılamaz
+❌ Password hash'leme yapılmadan kaydetme
+❌ Form/Table tanımlarını resource içinde yapma
+❌ Type hints eksikliği
+❌ **`use Filament\Forms\Components\Section;` - Section artık `Filament\Schemas\Components\Section` olmalı**
+❌ **Layout component'lerini yanlış namespace'den import etme**
+
+### 15. Filament v4 Özellikleri
+
+- Tailwind CSS v4 kullanımı
+- Schema-based form yapısı
+- Panel Provider yapılandırması
+- Theme customization
+- Custom pages support
+
+---
+
+## Kullanım Notları
+
+Bu kurallar Filament v4.3.1+ versiyonları için geçerlidir.
+Laravel 12.0+ ile uyumludur.
+PHP 8.2+ gerektirir.
+
+## Referans
+
+- Filament v4 Documentation: https://filamentphp.com/docs/4.x
+- Context7 MCP Documentation ile doğrulanmıştır
+
+
