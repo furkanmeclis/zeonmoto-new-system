@@ -7,9 +7,21 @@ use App\Http\Controllers\FavoritesController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PriceController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use FurkanMeclis\PayTRLink\Settings\PayTRSettings;
 use App\Http\Controllers\HomeController;
+
+// Storage files route - Serve public storage files
+Route::get('/storage/{path}', function (string $path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath) || !is_file($filePath)) {
+        abort(404);
+    }
+    
+    return response()->file($filePath);
+})->where('path', '.*')->name('storage');
 
 // Guest route'ları - Inertia.js ile React sayfaları
 Route::get('/', [HomeController::class, 'index'])->name('home');

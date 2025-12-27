@@ -1,0 +1,19 @@
+# humanstxt.org/
+# The humans responsible & technology colophon
+
+# TEAM
+
+    Site: ZeonMoto
+    Contact: info@zeonmoto.com
+    From: Turkey
+
+# TECHNOLOGY COLOPHON
+
+    Standards: HTML5, CSS3, JavaScript
+    Components: Laravel, React, Inertia.js, Filament
+    Software: PHP, Node.js
+
+# THANKS
+
+    Thanks to all contributors and the open source community.
+

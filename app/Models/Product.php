@@ -13,6 +13,7 @@ class Product extends Model
     protected $fillable = [
         'name',
         'sku',
+        'description',
         'base_price',
         'custom_price',
         'final_price',
@@ -110,6 +111,63 @@ class Product extends Model
         
         if ($firstImage) {
             return $firstImage->url;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get formatted description with standard format.
+     */
+    public function getFormattedDescriptionAttribute(): string
+    {
+        if ($this->description) {
+            return "{$this->name} - Stok Kodu: {$this->sku}. {$this->description}";
+        }
+
+        return "{$this->name} - Stok Kodu: {$this->sku}. Motosiklet yedek parça ve aksesuarları konusunda uzman ekibimizle hizmetinizdeyiz.";
+    }
+
+    /**
+     * Get the route key for the model.
+     * Only use {sku}-{id} format for web routes, not Filament admin routes.
+     */
+    public function getRouteKey(): string
+    {
+        // Filament admin route'ları için normal ID döndür
+        if (request()->is('admin/*')) {
+            return (string) $this->id;
+        }
+
+        return $this->sku . '-' . $this->id;
+    }
+
+    /**
+     * Retrieve the model for bound value.
+     * Only use custom binding for web routes, not Filament admin routes.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        // Filament admin route'ları için normal ID binding kullan
+        if (request()->is('admin/*')) {
+            return $this->where('id', $value)->first();
+        }
+
+        // Web route'ları için custom binding
+        // Eğer değer sadece ID ise (eski format için geriye dönük uyumluluk)
+        if (is_numeric($value)) {
+            return $this->where('id', $value)->first();
+        }
+
+        // {sku}-{id} formatını parse et
+        if (strpos($value, '-') !== false) {
+            $parts = explode('-', $value);
+            $id = array_pop($parts); // Son kısım ID
+            $sku = implode('-', $parts); // Geri kalan kısım SKU (SKU içinde de - olabilir)
+
+            return $this->where('id', $id)
+                ->where('sku', $sku)
+                ->first();
         }
 
         return null;

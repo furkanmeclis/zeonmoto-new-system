@@ -85,7 +85,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             transition={{ duration: 0.2 }}
             className="bg-gradient-to-b from-white to-yellow-50 rounded-xl shadow-lg overflow-hidden border border-yellow-100 hover:shadow-xl hover:border-yellow-200 transition-all"
         >
-            <Link href={`/products/${product.id}`}>
+            <Link href={`/products/${product.sku}-${product.id}`}>
                 <div className="relative aspect-square">
                     <img
                         src={productImage}
@@ -126,7 +126,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Link>
 
             <div className="p-4 space-y-4">
-                <Link href={`/products/${product.id}`}>
+                <Link href={`/products/${product.sku}-${product.id}`}>
                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 hover:text-yellow-600 transition-colors">
                         {product.name}
                     </h3>

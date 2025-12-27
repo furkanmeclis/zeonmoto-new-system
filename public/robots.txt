@@ -1,2 +1,5 @@
 User-agent: *
 Disallow:
+
+# Sitemap - Lütfen domain'inizi güncelleyin
+Sitemap: https://zeonmoto.com/sitemap.xml

@@ -120,6 +120,43 @@ class ShopController extends Controller
             ['sort_order', 'asc'],
         ])->values();
 
+        // Get primary image or first image
+        $primaryImage = $product->default_image_url ?? asset('logo.png');
+        $allImages = $sortedImages->map(fn($img) => $img->url)->toArray();
+        if (empty($allImages)) {
+            $allImages = [$primaryImage];
+        }
+
+        // Canonical URL
+        $canonicalUrl = url("/products/{$product->getRouteKey()}");
+
+        // Formatted description
+        $formattedDescription = $product->formatted_description;
+
+        // Google Shopping Structured Data
+        $structuredData = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'description' => $formattedDescription,
+            'image' => $allImages,
+            'offers' => [
+                '@type' => 'Offer',
+                'price' => (string) ($product->retail_price ?? $product->final_price),
+                'priceCurrency' => 'TRY',
+                'availability' => 'https://schema.org/InStock',
+            ],
+        ];
+
+        // Set meta data to session
+        $request->session()->put('meta_title', $product->name);
+        $request->session()->put('meta_description', $formattedDescription);
+        $request->session()->put('meta_image', $primaryImage);
+        $request->session()->put('meta_url', $canonicalUrl);
+        $request->session()->put('meta_type', 'product');
+        $request->session()->put('structured_data', $structuredData);
+
         $productData = [
             'id' => $product->id,
             'name' => $product->name,
@@ -127,6 +164,7 @@ class ShopController extends Controller
             'price' => (float) $product->final_price,
             'retail_price' => (float) ($product->retail_price ?? $product->final_price),
             'base_price' => (float) $product->base_price,
+            'description' => $formattedDescription,
             'images' => $sortedImages->map(fn($img) => [
                 'id' => $img->id,
                 'url' => $img->url,
