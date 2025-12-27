@@ -15,6 +15,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use FurkanMeclis\PayTRLink\Facades\PayTRLink;
+use FurkanMeclis\PayTRLink\Data\DeleteLinkData;
 
 class PaymentLinksTable
 {
@@ -186,6 +188,50 @@ class PaymentLinksTable
                             Notification::make()
                                 ->title('Email Gönderilemedi')
                                 ->body($result['message'] ?? 'Email gönderilirken bir hata oluştu.')
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('deleteLink')
+                    ->label('Linki Sil')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Linki Sil')
+                    ->modalDescription('Bu linki PayTR\'de silmek ve veritabanından kaldırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.')
+                    ->modalSubmitActionLabel('Evet, Sil')
+                    ->visible(fn (PaymentLink $record) => $record->status === 'pending' && !$record->isExpired())
+                    ->action(function (PaymentLink $record): void {
+                        try {
+                            // Delete from PayTR API
+                            $deleteData = DeleteLinkData::from([
+                                'link_id' => $record->paytr_link_id,
+                            ]);
+                            
+                            $response = PayTRLink::delete($deleteData);
+
+                            if ($response->isSuccess()) {
+                                // Soft delete from database
+                                $record->update(['status' => 'cancelled']);
+                                $record->delete();
+
+                                Notification::make()
+                                    ->title('Link Silindi')
+                                    ->body('Link PayTR\'de ve veritabanında başarıyla silindi.')
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Link Silinemedi')
+                                    ->body($response->message ?? 'PayTR API\'den link silinirken bir hata oluştu.')
+                                    ->danger()
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Hata')
+                                ->body('Link silinirken bir hata oluştu: ' . $e->getMessage())
                                 ->danger()
                                 ->send();
                         }

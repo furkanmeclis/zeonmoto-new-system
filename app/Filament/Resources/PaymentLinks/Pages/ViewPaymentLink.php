@@ -98,22 +98,32 @@ class ViewPaymentLink extends ViewRecord
                 ->modalSubmitActionLabel('Evet, Sil')
                 ->action(function () use ($record) {
                     try {
-                        // Delete from PayTR
+                        // Delete from PayTR API
                         $deleteData = DeleteLinkData::from([
                             'link_id' => $record->paytr_link_id,
                         ]);
-                        PayTRLink::delete($deleteData);
+                        
+                        $response = PayTRLink::delete($deleteData);
 
-                        // Soft delete from database
-                        $record->delete();
+                        if ($response->isSuccess()) {
+                            // Update status and soft delete from database
+                            $record->update(['status' => 'cancelled']);
+                            $record->delete();
 
-                        Notification::make()
-                            ->title('Link Silindi')
-                            ->body('Link PayTR\'de ve veritabanında silindi.')
-                            ->success()
-                            ->send();
+                            Notification::make()
+                                ->title('Link Silindi')
+                                ->body('Link PayTR\'de ve veritabanında başarıyla silindi.')
+                                ->success()
+                                ->send();
 
-                        $this->redirect(PaymentLinkResource::getUrl('index'));
+                            $this->redirect(PaymentLinkResource::getUrl('index'));
+                        } else {
+                            Notification::make()
+                                ->title('Link Silinemedi')
+                                ->body($response->message ?? 'PayTR API\'den link silinirken bir hata oluştu.')
+                                ->danger()
+                                ->send();
+                        }
                     } catch (\Exception $e) {
                         Notification::make()
                             ->title('Hata')
