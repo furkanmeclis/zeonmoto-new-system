@@ -1,26 +1,26 @@
 {
-  "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-ext-wght-normal.woff2": {
+  "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-ext-wght-normal.woff2": {
     "file": "assets/nunito-sans-cyrillic-ext-wght-normal-7w74d1lj.woff2",
-    "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-ext-wght-normal.woff2"
+    "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-ext-wght-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-wght-normal.woff2": {
+  "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-wght-normal.woff2": {
     "file": "assets/nunito-sans-cyrillic-wght-normal-B9hoeQUC.woff2",
-    "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-wght-normal.woff2"
+    "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-cyrillic-wght-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-ext-wght-normal.woff2": {
+  "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-ext-wght-normal.woff2": {
     "file": "assets/nunito-sans-latin-ext-wght-normal-DMEAsnHD.woff2",
-    "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-ext-wght-normal.woff2"
+    "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-ext-wght-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-wght-normal.woff2": {
+  "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-wght-normal.woff2": {
     "file": "assets/nunito-sans-latin-wght-normal-BWQ3gi2K.woff2",
-    "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-wght-normal.woff2"
+    "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-latin-wght-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2": {
+  "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2": {
     "file": "assets/nunito-sans-vietnamese-wght-normal-BhFYcaJr.woff2",
-    "src": "node_modules/.pnpm/@fontsource-variable+nunito-sans@5.2.7/node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2"
+    "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DZAYM56P.css",
+    "file": "assets/app-CEnKeF65.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -29,17 +29,20 @@
     ]
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-WEX3tKRb.css",
+    "file": "assets/theme-B7edB-IO.css",
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-B-CeM9kb.js",
+    "file": "assets/app-DjjKjGHe.js",
     "name": "app",
     "src": "resources/js/app.tsx",
-    "isEntry": true
+    "isEntry": true,
+    "css": [
+      "assets/app-uGqyt-El.css"
+    ]
   },
   "vendor/resma/filament-awin-theme/resources/css/theme.css": {
-    "file": "assets/theme-Cc3V6JS1.css",
+    "file": "assets/theme-B1lCKSHF.css",
     "src": "vendor/resma/filament-awin-theme/resources/css/theme.css",
     "isEntry": true,
     "name": "theme",
