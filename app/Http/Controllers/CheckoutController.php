@@ -6,14 +6,19 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CheckoutController extends Controller
 {
+    public function __construct(
+        protected PaymentService $paymentService
+    ) {
+    }
+
     /**
      * Get or create cart for current session.
      */
@@ -71,11 +76,6 @@ class CheckoutController extends Controller
      */
     public function store(Request $request)
     {
-        Log::info('Checkout store başladı', [
-            'request_data' => $request->all(),
-            'session_id' => session()->getId(),
-        ]);
-
         try {
             $request->validate([
                 'first_name' => 'required|string|max:255',
@@ -85,39 +85,23 @@ class CheckoutController extends Controller
                 'district' => 'required|string|max:255',
                 'address' => 'required|string',
                 'note' => 'nullable|string',
+                'payment_method' => 'required|in:transfer,paytr_link',
             ]);
-
-            Log::info('Validation başarılı');
 
             $cart = $this->getOrCreateCart();
 
-            Log::info('Cart kontrolü', [
-                'cart_exists' => $cart !== null,
-                'cart_id' => $cart?->id,
-                'cart_items_count' => $cart?->items()->count() ?? 0,
-            ]);
-
             if (!$cart || $cart->items()->count() === 0) {
-                Log::warning('Cart boş veya bulunamadı');
                 return back()->withErrors([
                     'cart' => 'Sepetiniz boş. Lütfen önce ürün ekleyin.',
                 ]);
             }
 
             DB::beginTransaction();
-            Log::info('Transaction başlatıldı');
 
             // Find or create customer by phone
             $customer = Customer::where('phone', $request->phone)->first();
 
-            Log::info('Customer kontrolü', [
-                'customer_exists' => $customer !== null,
-                'customer_id' => $customer?->id,
-                'phone' => $request->phone,
-            ]);
-
             if (!$customer) {
-                Log::info('Yeni customer oluşturuluyor');
                 $customer = Customer::create([
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
@@ -127,9 +111,7 @@ class CheckoutController extends Controller
                     'address' => $request->address,
                     'note' => $request->note,
                 ]);
-                Log::info('Customer oluşturuldu', ['customer_id' => $customer->id]);
             } else {
-                Log::info('Mevcut customer güncelleniyor', ['customer_id' => $customer->id]);
                 // Update customer info if provided
                 $customer->update([
                     'first_name' => $request->first_name,
@@ -139,7 +121,6 @@ class CheckoutController extends Controller
                     'address' => $request->address,
                     'note' => $request->note ?? $customer->note,
                 ]);
-                Log::info('Customer güncellendi');
             }
 
             // Calculate totals
@@ -147,18 +128,8 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($item) => $item->product->final_price * $item->quantity);
             $total = $subtotal;
 
-            Log::info('Totals hesaplandı', [
-                'items_count' => $items->count(),
-                'subtotal' => $subtotal,
-                'total' => $total,
-            ]);
-
-            // Create order
-            Log::info('Order oluşturuluyor', [
-                'customer_id' => $customer->id,
-                'subtotal' => $subtotal,
-                'total' => $total,
-            ]);
+            // Create order first to get order_no
+            $paymentMethod = $request->payment_method;
 
             $order = Order::create([
                 'customer_id' => $customer->id,
@@ -166,18 +137,51 @@ class CheckoutController extends Controller
                 'total' => $total,
                 'total_amount' => $total, // Deprecated field, but still required in DB
                 'currency' => 'TRY',
+                'payment_method' => $paymentMethod,
             ]);
 
-            Log::info('Order oluşturuldu', [
-                'order_id' => $order->id,
-                'order_no' => $order->order_no,
-            ]);
+            // Handle payment method - create PayTR link if needed
+            $paymentLinkId = null;
+            $paymentLink = null;
+
+            if ($paymentMethod === 'paytr_link') {
+                $customerName = "{$request->first_name} {$request->last_name}";
+                $linkResult = $this->paymentService->createPayTRLink(
+                    orderNo: $order->order_no,
+                    amount: $total,
+                    customerName: $customerName,
+                    customerEmail: null,
+                    maxInstallment: 12
+                );
+
+                if (!$linkResult['success']) {
+                    DB::rollBack();
+                    return back()->withErrors([
+                        'payment' => $linkResult['message'] ?? 'Ödeme linki oluşturulamadı. Lütfen tekrar deneyin.',
+                    ]);
+                }
+
+                $paymentLinkId = $linkResult['link_id'];
+                $paymentLink = $linkResult['link'];
+
+                // Update order with payment link ID
+                $order->update([
+                    'payment_link_id' => $paymentLinkId,
+                ]);
+
+                // Send SMS automatically if phone number is provided
+                if (!empty($request->phone)) {
+                    $this->paymentService->sendPaymentLinkSms(
+                        $paymentLinkId,
+                        $request->phone
+                    );
+                }
+            }
 
             // Create order items
-            Log::info('Order items oluşturuluyor', ['items_count' => $items->count()]);
             foreach ($items as $cartItem) {
                 $lineTotal = $cartItem->product->final_price * $cartItem->quantity;
-                $orderItem = OrderItem::create([
+                OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
@@ -188,40 +192,25 @@ class CheckoutController extends Controller
                     'product_name_snapshot' => $cartItem->product->name,
                     'sku_snapshot' => $cartItem->product->sku,
                 ]);
-                Log::info('Order item oluşturuldu', [
-                    'order_item_id' => $orderItem->id,
-                    'product_id' => $cartItem->product_id,
-                    'quantity' => $cartItem->quantity,
-                    'line_total' => $lineTotal,
-                ]);
             }
 
             // Clear cart
-            Log::info('Cart temizleniyor', ['cart_id' => $cart->id]);
             $cart->items()->delete();
             $cart->delete();
-            Log::info('Cart temizlendi');
 
             DB::commit();
-            Log::info('Transaction commit edildi', ['order_id' => $order->id]);
+
+            // Store payment link in session for success page
+            if ($paymentLink) {
+                session()->put("order_{$order->id}_payment_link", $paymentLink);
+            }
 
             return redirect()->route('checkout.success', $order->id)
                 ->with('success', 'Siparişiniz başarıyla oluşturuldu!');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation hatası', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all(),
-            ]);
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            Log::error('Sipariş oluşturma hatası', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all(),
-                'session_id' => session()->getId(),
-            ]);
             
             return back()->withErrors([
                 'error' => 'Sipariş oluşturulurken bir hata oluştu: ' . $e->getMessage(),
@@ -236,6 +225,33 @@ class CheckoutController extends Controller
     {
         $order->load(['customer', 'orderItems.product']);
 
+        // Get payment information
+        $paymentInfo = null;
+        if ($order->payment_method === 'transfer') {
+            $paymentInfo = [
+                'type' => 'transfer',
+                'bank_account' => $this->paymentService->getBankAccountInfo(),
+            ];
+        } elseif ($order->payment_method === 'paytr_link') {
+            // Try to get payment link from session first, then from order
+            $paymentLink = session()->get("order_{$order->id}_payment_link");
+            if (!$paymentLink && $order->payment_link_id) {
+                // If link is not in session, we can't retrieve it from PayTR
+                // This is a limitation - we should store the full link in the database
+                // For now, we'll just indicate that payment link was created
+                $paymentLink = null;
+            }
+
+            $paymentInfo = [
+                'type' => 'paytr_link',
+                'payment_link' => $paymentLink,
+                'payment_link_id' => $order->payment_link_id,
+            ];
+
+            // Clear session
+            session()->forget("order_{$order->id}_payment_link");
+        }
+
         return Inertia::render('Checkout/Success', [
             'order' => [
                 'id' => $order->id,
@@ -243,6 +259,7 @@ class CheckoutController extends Controller
                 'status' => $order->status->value,
                 'total' => (float) $order->total,
                 'currency' => $order->currency,
+                'payment_method' => $order->payment_method,
                 'created_at' => $order->created_at->format('d.m.Y H:i'),
                 'customer' => [
                     'full_name' => $order->customer->full_name,
@@ -258,6 +275,7 @@ class CheckoutController extends Controller
                     'total_price' => (float) $item->total_price,
                 ]),
             ],
+            'payment_info' => $paymentInfo,
         ]);
     }
 }

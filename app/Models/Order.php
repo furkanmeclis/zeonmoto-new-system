@@ -19,6 +19,8 @@ class Order extends Model
         'subtotal',
         'total',
         'currency',
+        'payment_method',
+        'payment_link_id',
     ];
 
     protected $casts = [

@@ -4,10 +4,11 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FavoritesController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PriceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
+use FurkanMeclis\PayTRLink\Settings\PayTRSettings;
 use App\Http\Controllers\HomeController;
 
 // Guest route'ları - Inertia.js ile React sayfaları
@@ -42,5 +43,21 @@ Route::prefix('favorites')->name('favorites.')->group(function () {
 // Price PIN verification route
 Route::post('/api/price/verify-pin', [PriceController::class, 'verifyPin'])->name('price.verify-pin');
 
+// Payment webhook routes
+Route::prefix('api/payments')->name('payments.')->group(function () {
+    Route::post('/paytr/callback', [PaymentController::class, 'handlePayTRCallback'])->name('paytr.callback');
+});
+
 // Order print route
 Route::get('/orders/{order}/print', [App\Http\Controllers\OrderPrintController::class, 'print'])->name('orders.print');
+
+Route::get('/paytr/settings',function(){
+    $settings = app(PayTRSettings::class);
+    $data=[
+        "merchant_id" => $settings->getMerchantId(),
+        "merchant_key" => $settings->getMerchantKey(),
+        "merchant_salt" => $settings->getMerchantSalt(),
+        "debug_on" => $settings->getDebugOn(),
+    ];
+    return response()->json($data);
+})->name('paytr.settings');

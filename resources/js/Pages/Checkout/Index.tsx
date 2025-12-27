@@ -38,6 +38,7 @@ export default function CheckoutIndex({ items, subtotal, total, cartCount }: Pro
         district: '',
         address: '',
         note: '',
+        payment_method: 'transfer', // Default to transfer
     })
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -201,6 +202,59 @@ export default function CheckoutIndex({ items, subtotal, total, cartCount }: Pro
                                             placeholder="Siparişinizle ilgili özel notlarınız..."
                                         />
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Payment Method Selection */}
+                            <Card className="mt-6">
+                                <CardHeader>
+                                    <CardTitle>Ödeme Yöntemi</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors">
+                                            <input
+                                                type="radio"
+                                                id="payment_transfer"
+                                                name="payment_method"
+                                                value="transfer"
+                                                checked={data.payment_method === 'transfer'}
+                                                onChange={(e) => setData('payment_method', e.target.value)}
+                                                className="h-4 w-4 text-primary focus:ring-primary"
+                                            />
+                                            <Label htmlFor="payment_transfer" className="flex-1 cursor-pointer">
+                                                <div>
+                                                    <div className="font-medium">Havale/EFT</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        Banka hesabımıza havale veya EFT yaparak ödeme yapabilirsiniz
+                                                    </div>
+                                                </div>
+                                            </Label>
+                                        </div>
+
+                                        <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-accent cursor-pointer transition-colors">
+                                            <input
+                                                type="radio"
+                                                id="payment_paytr_link"
+                                                name="payment_method"
+                                                value="paytr_link"
+                                                checked={data.payment_method === 'paytr_link'}
+                                                onChange={(e) => setData('payment_method', e.target.value)}
+                                                className="h-4 w-4 text-primary focus:ring-primary"
+                                            />
+                                            <Label htmlFor="payment_paytr_link" className="flex-1 cursor-pointer">
+                                                <div>
+                                                    <div className="font-medium">Link ile Ödeme</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        PayTR güvenli ödeme linki ile kredi kartı veya banka kartı ile ödeme yapabilirsiniz
+                                                    </div>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                    </div>
+                                    {errors.payment_method && (
+                                        <p className="text-sm text-destructive">{errors.payment_method}</p>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>

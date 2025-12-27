@@ -31,10 +31,10 @@ interface FilterSectionProps {
     };
 }
 
-const FilterSection: React.FC<FilterSectionProps> = ({ 
-    categories = [], 
-    priceRange = { min: 0, max: 9999 }, 
-    filters = {} 
+const FilterSection: React.FC<FilterSectionProps> = ({
+    categories = [],
+    priceRange = { min: 0, max: 9999 },
+    filters = {}
 }) => {
     const [currentFilters, setCurrentFilters] = useState({
         category: filters.category || '',
@@ -68,10 +68,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
 
     const handleSortChange = (value: string) => {
         const [sort_by, sort_order] = value.split('-');
-        const newFilters = { 
-            ...currentFilters, 
-            sort_by, 
-            sort_order 
+        const newFilters = {
+            ...currentFilters,
+            sort_by,
+            sort_order
         };
         setCurrentFilters(newFilters);
         applyFilters(newFilters);
@@ -80,7 +80,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const value = parseInt(event.target.value);
         const isMin = event.target.name === 'min_price';
-        
+
         let newMin = isMin ? value : priceValues[0];
         let newMax = isMin ? priceValues[1] : value;
 
@@ -155,11 +155,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleFilterChange('category', '')}
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            currentFilters.category === ''
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${currentFilters.category === ''
                                 ? 'bg-yellow-500 text-white'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                            }`}
                     >
                         Tümü
                     </motion.button>
@@ -169,13 +168,12 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => handleFilterChange('category', category.slug)}
-                            className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                currentFilters.category === category.slug
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${currentFilters.category === category.slug
                                     ? 'bg-yellow-500 text-white'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            } ${category.products_count === 0 ? 'hidden' : ''}`}
+                                } ${category.products_count === 0 ? 'hidden' : ''}`}
                         >
-                            {category.name} ({category.products_count || 0})
+                            {category.name}
                         </motion.button>
                     ))}
                 </div>
