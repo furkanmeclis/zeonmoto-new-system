@@ -26,9 +26,20 @@ interface Props {
     subtotal: number
     total: number
     cartCount: number
+    commission_rate?: number
+    commission_amount?: number
+    total_with_commission?: number
 }
 
-export default function CheckoutIndex({ items, subtotal, total, cartCount }: Props) {
+export default function CheckoutIndex({ 
+    items, 
+    subtotal, 
+    total, 
+    cartCount,
+    commission_rate,
+    commission_amount,
+    total_with_commission
+}: Props) {
     const { isPriceVisible } = usePriceVisibility()
     const { data, setData, post, processing, errors } = useForm({
         first_name: '',
@@ -255,6 +266,44 @@ export default function CheckoutIndex({ items, subtotal, total, cartCount }: Pro
                                     {errors.payment_method && (
                                         <p className="text-sm text-destructive">{errors.payment_method}</p>
                                     )}
+                                    
+                                    {/* Commission Information for PayTR Link */}
+                                    {data.payment_method === 'paytr_link' && commission_rate && commission_rate > 0 && (
+                                        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                            <div className="flex items-start space-x-3">
+                                                <div className="flex-shrink-0">
+                                                    <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                                                        Komisyon Bilgisi
+                                                    </h4>
+                                                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                                                        Link ile ödeme seçildiğinde, toplam tutarınıza{' '}
+                                                        <span className="font-semibold">%{commission_rate.toFixed(2)}</span> komisyon eklenir.
+                                                        {commission_amount && commission_amount > 0 && (
+                                                            <>
+                                                                {' '}Komisyon tutarı:{' '}
+                                                                <span className="font-semibold">
+                                                                    {isPriceVisible ? formatPrice(commission_amount) : 'PIN gerekli'}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                    {total_with_commission && total_with_commission > 0 && (
+                                                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-2 font-medium">
+                                                            Ödenecek Toplam Tutar:{' '}
+                                                            <span className="font-bold">
+                                                                {isPriceVisible ? formatPrice(total_with_commission) : 'PIN gerekli'}
+                                                            </span>
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>
@@ -301,12 +350,32 @@ export default function CheckoutIndex({ items, subtotal, total, cartCount }: Pro
                                             )}
                                         </span>
                                     </div>
-                                    <Separator />
+                                    {data.payment_method === 'paytr_link' && commission_rate && commission_rate > 0 && commission_amount && commission_amount > 0 && (
+                                        <>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">
+                                                    Komisyon (%{commission_rate.toFixed(2)})
+                                                </span>
+                                                <span className="font-medium">
+                                                    {isPriceVisible ? (
+                                                        formatPrice(commission_amount)
+                                                    ) : (
+                                                        <span className="text-muted-foreground">PIN gerekli</span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Toplam</span>
                                         <span className="text-primary">
                                             {isPriceVisible ? (
-                                                formatPrice(total)
+                                                formatPrice(
+                                                    data.payment_method === 'paytr_link' && total_with_commission 
+                                                        ? total_with_commission 
+                                                        : total
+                                                )
                                             ) : (
                                                 <span className="text-muted-foreground">PIN gerekli</span>
                                             )}

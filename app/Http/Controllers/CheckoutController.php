@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Payment\PaymentService;
+use App\Settings\PaymentCommissionSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -64,10 +65,26 @@ class CheckoutController extends Controller
         $subtotal = $items->sum(fn($item) => $item['product']['price'] * $item['quantity']);
         $total = $subtotal;
 
+        // Get commission settings
+        $commissionSettings = app(PaymentCommissionSettings::class);
+        $commissionRate = $commissionSettings->commission_rate ?? 0;
+
+        // Calculate commission for PayTR link payment
+        $commissionAmount = 0;
+        $totalWithCommission = $total;
+        
+        if ($commissionRate > 0) {
+            $commissionAmount = ($subtotal * $commissionRate) / 100;
+            $totalWithCommission = $subtotal + $commissionAmount;
+        }
+
         return Inertia::render('Checkout/Index', [
             'items' => $items,
             'subtotal' => $subtotal,
             'total' => $total,
+            'commission_rate' => $commissionRate,
+            'commission_amount' => $commissionAmount,
+            'total_with_commission' => $totalWithCommission,
         ]);
     }
 
@@ -128,8 +145,20 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($item) => $item->product->final_price * $item->quantity);
             $total = $subtotal;
 
-            // Create order first to get order_no
+            // Get commission settings
+            $commissionSettings = app(PaymentCommissionSettings::class);
+            $commissionRate = $commissionSettings->commission_rate ?? 0;
+
+            // Calculate commission for PayTR link payment
             $paymentMethod = $request->payment_method;
+            $commissionAmount = 0;
+            
+            if ($paymentMethod === 'paytr_link' && $commissionRate > 0) {
+                $commissionAmount = ($subtotal * $commissionRate) / 100;
+                $total = $subtotal + $commissionAmount;
+            }
+
+            // Create order first to get order_no
 
             $order = Order::create([
                 'customer_id' => $customer->id,
