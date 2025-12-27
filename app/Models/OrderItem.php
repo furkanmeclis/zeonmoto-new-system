@@ -56,6 +56,20 @@ class OrderItem extends Model
                 }
             }
         });
+
+        // Recalculate order totals after order item is saved
+        static::saved(function ($orderItem) {
+            if ($orderItem->order) {
+                $orderItem->order->recalculateTotals();
+            }
+        });
+
+        // Recalculate order totals after order item is deleted
+        static::deleted(function ($orderItem) {
+            if ($orderItem->order) {
+                $orderItem->order->recalculateTotals();
+            }
+        });
     }
 
     public function order(): BelongsTo

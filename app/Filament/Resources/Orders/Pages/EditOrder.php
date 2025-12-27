@@ -70,4 +70,20 @@ class EditOrder extends EditRecord
 
         return $data;
     }
+
+    /**
+     * After order is saved, recalculate totals to ensure accuracy.
+     * This protects against any calculation errors during form submission.
+     */
+    protected function afterSave(): void
+    {
+        // Refresh the record to get the latest data
+        $this->record->refresh();
+
+        // Recalculate totals based on actual saved order items
+        $this->record->recalculateTotals();
+
+        // Refresh again to show updated totals
+        $this->record->refresh();
+    }
 }

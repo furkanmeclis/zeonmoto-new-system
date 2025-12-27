@@ -55,4 +55,20 @@ class CreateOrder extends CreateRecord
 
         return $data;
     }
+
+    /**
+     * After order is created, recalculate totals to ensure accuracy.
+     * This protects against any calculation errors during form submission.
+     */
+    protected function afterCreate(): void
+    {
+        // Refresh the record to get the latest data
+        $this->record->refresh();
+
+        // Recalculate totals based on actual saved order items
+        $this->record->recalculateTotals();
+
+        // Refresh again to show updated totals
+        $this->record->refresh();
+    }
 }

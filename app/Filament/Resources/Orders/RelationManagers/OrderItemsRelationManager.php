@@ -142,4 +142,28 @@ class OrderItemsRelationManager extends RelationManager
                 //
             ]);
     }
+
+    /**
+     * After order item is created, recalculate order totals.
+     */
+    protected function afterCreate(): void
+    {
+        $this->getOwnerRecord()->recalculateTotals();
+    }
+
+    /**
+     * After order item is updated, recalculate order totals.
+     */
+    protected function afterUpdate(): void
+    {
+        $this->getOwnerRecord()->recalculateTotals();
+    }
+
+    /**
+     * After order item is deleted, recalculate order totals.
+     */
+    protected function afterDelete(): void
+    {
+        $this->getOwnerRecord()->recalculateTotals();
+    }
 }

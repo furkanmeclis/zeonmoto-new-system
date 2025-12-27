@@ -97,4 +97,45 @@ class Order extends Model
     {
         return $this->orderItems()->sum('quantity');
     }
+
+    /**
+     * Recalculate order totals based on order items.
+     * This method ensures totals are always correct after save operations.
+     */
+    public function recalculateTotals(): void
+    {
+        // Refresh order items relationship
+        $this->load('orderItems');
+
+        // Calculate subtotal from all order items
+        $subtotal = 0;
+        foreach ($this->orderItems as $item) {
+            // Use line_total if available, otherwise calculate from unit_price_snapshot and quantity
+            if ($item->line_total !== null) {
+                $subtotal += round($item->line_total, 2);
+            } elseif ($item->unit_price_snapshot !== null) {
+                $lineTotal = round($item->unit_price_snapshot * $item->quantity, 2);
+                // Update line_total if it's missing
+                $item->update(['line_total' => $lineTotal]);
+                $subtotal += $lineTotal;
+            } else {
+                // Fallback to deprecated fields
+                $lineTotal = round(($item->unit_price ?? 0) * $item->quantity, 2);
+                $subtotal += $lineTotal;
+            }
+        }
+
+        // Get total discount
+        $totalDiscount = round($this->total_discount ?? 0, 2);
+
+        // Calculate final total
+        $total = round(max(0, $subtotal - $totalDiscount), 2);
+
+        // Update order totals
+        $this->update([
+            'subtotal' => round($subtotal, 2),
+            'total' => $total,
+            'total_amount' => $total, // Backward compatibility
+        ]);
+    }
 }
