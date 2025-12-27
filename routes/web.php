@@ -40,8 +40,12 @@ Route::prefix('favorites')->name('favorites.')->group(function () {
     Route::post('/products', [FavoritesController::class, 'getProducts'])->name('products');
 });
 
-// Price PIN verification route
-Route::post('/api/price/verify-pin', [PriceController::class, 'verifyPin'])->name('price.verify-pin');
+// Price PIN verification routes
+Route::prefix('api/price')->name('price.')->group(function () {
+    Route::post('/verify-pin', [PriceController::class, 'verifyPin'])->name('verify-pin');
+    Route::get('/check-status', [PriceController::class, 'checkPinStatus'])->name('check-status');
+    Route::post('/reset-status', [PriceController::class, 'resetPinStatus'])->name('reset-status');
+});
 
 // Payment webhook routes
 Route::prefix('api/payments')->name('payments.')->group(function () {

@@ -14,6 +14,7 @@ interface Product {
     name: string;
     sku: string;
     price: number;
+    retail_price?: number;
     base_price?: number;
     image: string | null;
     images?: string[];
@@ -133,7 +134,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
                 <div className="flex items-center justify-between">
                     <span className="text-xl font-bold text-yellow-600">
-                        {isPriceVisible ? formatCurrency(product.price) : '*** ₺'}
+                        {isPriceVisible 
+                            ? formatCurrency(product.price) 
+                            : formatCurrency(product.retail_price ?? product.price)}
                     </span>
                     {hasDiscount && isPriceVisible && (
                         <span className="text-sm text-gray-500 line-through">

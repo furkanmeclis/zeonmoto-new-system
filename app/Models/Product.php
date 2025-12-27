@@ -16,6 +16,7 @@ class Product extends Model
         'base_price',
         'custom_price',
         'final_price',
+        'retail_price',
         'is_active',
         'sort_order',
     ];
@@ -24,6 +25,7 @@ class Product extends Model
         'base_price' => 'decimal:2',
         'custom_price' => 'decimal:2',
         'final_price' => 'decimal:2',
+        'retail_price' => 'decimal:2',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
@@ -46,6 +48,31 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Set retail_price to final_price if it's 0 or null when creating
+        static::created(function ($product) {
+            if (($product->retail_price === null || $product->retail_price == 0) && $product->exists) {
+                $finalPrice = $product->calculatePrice()->final;
+                $product->updateQuietly(['retail_price' => $finalPrice]);
+            }
+        });
+
+        // Set retail_price to final_price if it's 0 when updating
+        static::updating(function ($product) {
+            if ($product->retail_price == 0 && $product->isDirty(['base_price', 'custom_price'])) {
+                // Calculate final price before update
+                $finalPrice = $product->calculatePrice()->final;
+                $product->retail_price = $finalPrice;
+            }
+        });
     }
 
     /**

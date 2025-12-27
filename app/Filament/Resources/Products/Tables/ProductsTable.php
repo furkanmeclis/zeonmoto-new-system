@@ -17,6 +17,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Support\Icons\Heroicon;
 use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -345,6 +346,86 @@ class ProductsTable
                                 ->send();
                         })
                         ->deselectRecordsAfterCompletion(),
+                    BulkAction::make('set_retail_price')
+                        ->label('Perakende Satış Fiyatı Ayarla')
+                        ->icon(Heroicon::OutlinedCurrencyDollar)
+                        ->color('info')
+                        ->form([
+                            Radio::make('calculation_type')
+                                ->label('Hesaplama Tipi')
+                                ->options([
+                                    'percentage' => 'Yüzdesel Ekleme',
+                                    'amount' => 'Rakamsal Ekleme',
+                                ])
+                                ->required()
+                                ->default('percentage')
+                                ->descriptions([
+                                    'percentage' => 'Ürünün şifreli satış fiyatına yüzde olarak ekleme yapılır',
+                                    'amount' => 'Ürünün şifreli satış fiyatına sabit tutar eklenir',
+                                ])
+                                ->inline(),
+                            TextInput::make('percentage')
+                                ->label('Yüzde Değeri')
+                                ->numeric()
+                                ->suffix('%')
+                                ->required(fn (Get $get) => $get('calculation_type') === 'percentage')
+                                ->visible(fn (Get $get) => $get('calculation_type') === 'percentage')
+                                ->helperText('Örnek: 10 girerseniz %10 eklenir')
+                                ->minValue(0)
+                                ->maxValue(1000),
+                            TextInput::make('amount')
+                                ->label('Tutar')
+                                ->numeric()
+                                ->prefix('₺')
+                                ->required(fn (Get $get) => $get('calculation_type') === 'amount')
+                                ->visible(fn (Get $get) => $get('calculation_type') === 'amount')
+                                ->helperText('Ürünün şifreli satış fiyatına eklenecek tutar')
+                                ->minValue(0)
+                                ->step(0.01),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            $count = $records->count();
+                            $calculationType = $data['calculation_type'] ?? 'percentage';
+                            $updatedCount = 0;
+
+                            $records->each(function ($product) use ($calculationType, $data, &$updatedCount) {
+                                // Get base price for calculation (custom_price or base_price)
+                                $basePrice = $product->custom_price ?? $product->base_price;
+                                
+                                if ($basePrice <= 0) {
+                                    return; // Skip products with invalid base price
+                                }
+
+                                $newRetailPrice = 0;
+
+                                if ($calculationType === 'percentage') {
+                                    $percentage = (float) ($data['percentage'] ?? 0);
+                                    $newRetailPrice = $basePrice * (1 + $percentage / 100);
+                                } elseif ($calculationType === 'amount') {
+                                    $amount = (float) ($data['amount'] ?? 0);
+                                    $newRetailPrice = $basePrice + $amount;
+                                }
+
+                                if ($newRetailPrice > 0) {
+                                    $product->update(['retail_price' => round($newRetailPrice, 2)]);
+                                    $updatedCount++;
+                                }
+                            });
+
+                            if ($updatedCount > 0) {
+                                Notification::make()
+                                    ->title("{$updatedCount} ürünün perakende satış fiyatı güncellendi")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Hiçbir ürün güncellenemedi')
+                                    ->warning()
+                                    ->body('Lütfen geçerli fiyat bilgisi olan ürünler seçin.')
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     BulkAction::make('attach_categories')
                         ->label('Kategoriye Ekle')
                         ->icon('heroicon-o-tag')
@@ -429,6 +510,13 @@ class ProductsTable
                 })
                 ->sortable()
                 ->tooltip('Fiyat kuralları uygulanarak hesaplanan final fiyat'),
+            TextColumn::make('retail_price')
+                ->label('Perakende Satış Fiyatı')
+                ->money('TRY')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true)
+                ->placeholder('-')
+                ->tooltip('Şifresi olmayan müşteriler için görüntülenecek fiyat'),
             ToggleColumn::make('is_active')
                 ->label('Aktif')
                 ->sortable()

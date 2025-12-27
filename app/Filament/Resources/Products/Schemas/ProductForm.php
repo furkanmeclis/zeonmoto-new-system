@@ -65,6 +65,13 @@ class ProductForm
                                 return $record->calculatePrice()->final;
                             })
                             ->helperText('Fiyat kuralları uygulanarak hesaplanan final fiyat'),
+                        TextInput::make('retail_price')
+                            ->label('Perakende Satış Fiyatı')
+                            ->numeric()
+                            ->prefix('₺')
+                            ->nullable()
+                            ->step(0.01)
+                            ->helperText('Şifresi olmayan müşteriler için görüntülenecek fiyat. Boş bırakılırsa final fiyat kullanılır.'),
                     ])
                     ->columns(2),
             ]);

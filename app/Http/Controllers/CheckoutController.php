@@ -58,6 +58,7 @@ class CheckoutController extends Controller
                         'name' => $item->product->name,
                         'sku' => $item->product->sku,
                         'price' => (float) $item->product->final_price,
+                        'retail_price' => (float) ($item->product->retail_price ?? $item->product->final_price),
                     ],
                 ];
             });
@@ -140,9 +141,20 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            // Calculate totals
+            // Calculate totals - use final_price if PIN verified, retail_price if not
+            $isPinVerified = $request->session()->get('price_pin_verified', false);
             $items = $cart->items()->with('product')->get();
-            $subtotal = $items->sum(fn($item) => $item->product->final_price * $item->quantity);
+            $subtotal = $items->sum(function ($item) use ($isPinVerified) {
+                if ($isPinVerified) {
+                    // PIN girildiyse final_price (şifreli satış fiyatı) kullan
+                    $priceResult = $item->product->calculatePrice();
+                    return $priceResult->final * $item->quantity;
+                } else {
+                    // PIN girilmediyse retail_price (perakende satış fiyatı) kullan
+                    $retailPrice = $item->product->retail_price ?? $item->product->final_price;
+                    return $retailPrice * $item->quantity;
+                }
+            });
             $total = $subtotal;
 
             // Get commission settings
@@ -209,16 +221,26 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Create order items
+            // Create order items - use final_price if PIN verified, retail_price if not
             foreach ($items as $cartItem) {
-                $lineTotal = $cartItem->product->final_price * $cartItem->quantity;
+                if ($isPinVerified) {
+                    // PIN girildiyse final_price (şifreli satış fiyatı) kullan
+                    $priceResult = $cartItem->product->calculatePrice();
+                    $unitPrice = $priceResult->final;
+                } else {
+                    // PIN girilmediyse retail_price (perakende satış fiyatı) kullan
+                    $unitPrice = $cartItem->product->retail_price ?? $cartItem->product->final_price;
+                }
+                
+                $lineTotal = $unitPrice * $cartItem->quantity;
+                
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'quantity' => $cartItem->quantity,
-                    'unit_price' => $cartItem->product->final_price, // Deprecated
+                    'unit_price' => $unitPrice, // Deprecated
                     'total_price' => $lineTotal, // Deprecated
-                    'unit_price_snapshot' => $cartItem->product->final_price,
+                    'unit_price_snapshot' => $unitPrice,
                     'line_total' => $lineTotal,
                     'product_name_snapshot' => $cartItem->product->name,
                     'sku_snapshot' => $cartItem->product->sku,

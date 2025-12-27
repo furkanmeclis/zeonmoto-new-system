@@ -33,6 +33,7 @@ class FavoritesController extends Controller
                     'name' => $product->name,
                     'sku' => $product->sku,
                     'price' => (float) $product->final_price,
+                    'retail_price' => (float) ($product->retail_price ?? $product->final_price),
                     'base_price' => (float) $product->base_price,
                     'image' => $product->default_image_url,
                     'images' => $product->images->map(fn($img) => [

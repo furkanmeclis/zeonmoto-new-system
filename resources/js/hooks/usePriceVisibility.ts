@@ -1,17 +1,29 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
-const STORAGE_KEY = 'price_pin_verified'
-const STORAGE_VALUE = 'true'
-
 export function usePriceVisibility() {
     const [isPriceVisible, setIsPriceVisible] = useState<boolean>(false)
     const [isVerifying, setIsVerifying] = useState<boolean>(false)
+    const [isLoading, setIsLoading] = useState<boolean>(true)
 
-    // Sayfa yüklendiğinde localStorage'dan durumu kontrol et
+    // Sayfa yüklendiğinde session'dan durumu kontrol et
     useEffect(() => {
-        const verified = localStorage.getItem(STORAGE_KEY) === STORAGE_VALUE
-        setIsPriceVisible(verified)
+        const checkPinStatus = async () => {
+            try {
+                setIsLoading(true)
+                const response = await axios.get('/api/price/check-status')
+                if (response.data.success) {
+                    setIsPriceVisible(response.data.verified)
+                }
+            } catch (error) {
+                // Hata durumunda PIN girilmemiş sayılır
+                setIsPriceVisible(false)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        checkPinStatus()
     }, [])
 
     /**
@@ -30,15 +42,14 @@ export function usePriceVisibility() {
             const response = await axios.post('/api/price/verify-pin', { pin })
 
             if (response.data.success) {
-                // Başarılı doğrulamada localStorage'a kaydet
-                localStorage.setItem(STORAGE_KEY, STORAGE_VALUE)
+                // Başarılı doğrulamada session'a kaydedildi (backend'de yapılıyor)
                 setIsPriceVisible(true)
-                
+
                 // Sayfayı yenile
                 setTimeout(() => {
                     window.location.reload()
                 }, 500) // Kısa bir gecikme ile kullanıcıya başarı mesajını göstermek için
-                
+
                 return {
                     success: true,
                     message: response.data.message || 'PIN doğrulandı.',
@@ -66,14 +77,20 @@ export function usePriceVisibility() {
     /**
      * PIN doğrulama durumunu sıfırla (logout benzeri)
      */
-    const resetVerification = () => {
-        localStorage.removeItem(STORAGE_KEY)
-        setIsPriceVisible(false)
+    const resetVerification = async () => {
+        try {
+            await axios.post('/api/price/reset-status')
+            setIsPriceVisible(false)
+        } catch (error) {
+            // Hata olsa bile frontend state'ini güncelle
+            setIsPriceVisible(false)
+        }
     }
 
     return {
         isPriceVisible,
         isVerifying,
+        isLoading,
         verifyPin,
         resetVerification,
     }

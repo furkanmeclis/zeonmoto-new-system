@@ -53,6 +53,7 @@ class CartController extends Controller
                         'name' => $item->product->name,
                         'sku' => $item->product->sku,
                         'price' => (float) $item->product->final_price,
+                        'retail_price' => (float) ($item->product->retail_price ?? $item->product->final_price),
                         'image' => $item->product->default_image_url,
                     ],
                 ];

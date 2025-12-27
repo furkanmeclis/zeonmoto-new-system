@@ -36,6 +36,7 @@ interface Product {
     name: string
     sku: string
     price: number
+    retail_price?: number
     base_price: number
     images: ProductImage[]
     categories: Category[]
@@ -226,7 +227,9 @@ export default function ShopShow({ product, cartItem, cartCount }: Props) {
                         {/* Price */}
                         <div className="flex items-center space-x-4">
                             <span className="text-4xl font-bold text-yellow-500">
-                                {isPriceVisible ? formatCurrency(product.price) : '***'} ₺
+                                {isPriceVisible 
+                                    ? formatCurrency(product.price) 
+                                    : formatCurrency(product.retail_price ?? product.price)} ₺
                             </span>
                             {hasDiscount && isPriceVisible && (
                                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">

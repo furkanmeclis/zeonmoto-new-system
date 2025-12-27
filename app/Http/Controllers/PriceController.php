@@ -43,6 +43,9 @@ class PriceController extends Controller
         }
 
         if ($enteredPin === $correctPin) {
+            // PIN doğrulandığında session'a kaydet
+            $request->session()->put('price_pin_verified', true);
+            
             return response()->json([
                 'success' => true,
                 'message' => 'PIN doğrulandı.',
@@ -53,6 +56,38 @@ class PriceController extends Controller
             'success' => false,
             'message' => 'Yanlış PIN kodu.',
         ], 401);
+    }
+
+    /**
+     * PIN durumunu kontrol et (session'dan)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function checkPinStatus(Request $request): JsonResponse
+    {
+        $isVerified = $request->session()->get('price_pin_verified', false);
+        
+        return response()->json([
+            'success' => true,
+            'verified' => $isVerified,
+        ], 200);
+    }
+
+    /**
+     * PIN durumunu sıfırla (logout)
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function resetPinStatus(Request $request): JsonResponse
+    {
+        $request->session()->forget('price_pin_verified');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'PIN durumu sıfırlandı.',
+        ], 200);
     }
 }
 

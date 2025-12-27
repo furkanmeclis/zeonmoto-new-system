@@ -17,6 +17,7 @@ interface CartItem {
         name: string
         sku: string
         price: number
+        retail_price?: number
         image: string | null
     }
 }
@@ -38,6 +39,15 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
             currency: 'TRY',
         }).format(price)
     }
+
+    // Calculate subtotal and total based on price visibility
+    const displaySubtotal = isPriceVisible 
+        ? subtotal 
+        : items.reduce((sum, item) => sum + (item.product.retail_price ?? item.product.price) * item.quantity, 0)
+    
+    const displayTotal = isPriceVisible 
+        ? total 
+        : displaySubtotal
 
     const handleUpdateQuantity = (itemId: number, quantity: number) => {
         if (quantity < 1) {
@@ -151,11 +161,9 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
                                                 <h3 className="font-semibold text-lg mb-1">{item.product.name}</h3>
                                                 <p className="text-sm text-muted-foreground mb-2">SKU: {item.product.sku}</p>
                                                 <p className="text-lg font-bold text-primary mb-4">
-                                                    {isPriceVisible ? (
-                                                        formatPrice(item.product.price)
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">Fiyat için PIN gerekli</span>
-                                                    )}
+                                                    {isPriceVisible 
+                                                        ? formatPrice(item.product.price)
+                                                        : formatPrice(item.product.retail_price ?? item.product.price)}
                                                 </p>
 
                                                 {/* Quantity Controls */}
@@ -208,11 +216,9 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
                                             {/* Item Total */}
                                             <div className="text-right">
                                                 <p className="text-lg font-bold">
-                                                    {isPriceVisible ? (
-                                                        formatPrice(item.product.price * item.quantity)
-                                                    ) : (
-                                                        <span className="text-sm text-muted-foreground">PIN gerekli</span>
-                                                    )}
+                                                    {isPriceVisible 
+                                                        ? formatPrice(item.product.price * item.quantity)
+                                                        : formatPrice((item.product.retail_price ?? item.product.price) * item.quantity)}
                                                 </p>
                                             </div>
                                         </div>
@@ -231,22 +237,14 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Ara Toplam</span>
                                         <span className="font-medium">
-                                            {isPriceVisible ? (
-                                                formatPrice(subtotal)
-                                            ) : (
-                                                <span className="text-muted-foreground">PIN gerekli</span>
-                                            )}
+                                            {formatPrice(displaySubtotal)}
                                         </span>
                                     </div>
                                     <Separator />
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Toplam</span>
                                         <span className="text-primary">
-                                            {isPriceVisible ? (
-                                                formatPrice(total)
-                                            ) : (
-                                                <span className="text-muted-foreground">PIN gerekli</span>
-                                            )}
+                                            {formatPrice(displayTotal)}
                                         </span>
                                     </div>
                                     <Button onClick={handleCheckout} className="w-full" size="lg">

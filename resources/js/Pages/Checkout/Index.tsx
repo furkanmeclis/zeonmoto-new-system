@@ -18,6 +18,7 @@ interface CartItem {
         name: string
         sku: string
         price: number
+        retail_price?: number
     }
 }
 
@@ -80,6 +81,21 @@ export default function CheckoutIndex({
             currency: 'TRY',
         }).format(price)
     }
+
+    // Calculate subtotal and total based on price visibility
+    const displaySubtotal = isPriceVisible 
+        ? subtotal 
+        : items.reduce((sum, item) => sum + (item.product.retail_price ?? item.product.price) * item.quantity, 0)
+    
+    const displayCommissionAmount = isPriceVisible && commission_amount 
+        ? commission_amount 
+        : (data.payment_method === 'paytr_link' && commission_rate && commission_rate > 0)
+            ? displaySubtotal * (commission_rate / 100)
+            : 0
+    
+    const displayTotal = isPriceVisible 
+        ? (data.payment_method === 'paytr_link' && total_with_commission ? total_with_commission : total)
+        : displaySubtotal + displayCommissionAmount
 
     return (
         <GuestLayout cartCount={cartCount}>
@@ -283,20 +299,20 @@ export default function CheckoutIndex({
                                                     <p className="text-sm text-blue-800 dark:text-blue-200">
                                                         Link ile ödeme seçildiğinde, toplam tutarınıza{' '}
                                                         <span className="font-semibold">%{commission_rate.toFixed(2)}</span> komisyon eklenir.
-                                                        {commission_amount && commission_amount > 0 && (
+                                                        {displayCommissionAmount > 0 && (
                                                             <>
                                                                 {' '}Komisyon tutarı:{' '}
                                                                 <span className="font-semibold">
-                                                                    {isPriceVisible ? formatPrice(commission_amount) : 'PIN gerekli'}
+                                                                    {formatPrice(displayCommissionAmount)}
                                                                 </span>
                                                             </>
                                                         )}
                                                     </p>
-                                                    {total_with_commission && total_with_commission > 0 && (
+                                                    {displayTotal > 0 && (
                                                         <p className="text-sm text-blue-700 dark:text-blue-300 mt-2 font-medium">
                                                             Ödenecek Toplam Tutar:{' '}
                                                             <span className="font-bold">
-                                                                {isPriceVisible ? formatPrice(total_with_commission) : 'PIN gerekli'}
+                                                                {formatPrice(displayTotal)}
                                                             </span>
                                                         </p>
                                                     )}
@@ -322,19 +338,15 @@ export default function CheckoutIndex({
                                                     <p className="font-medium">{item.product.name}</p>
                                                     <p className="text-muted-foreground">
                                                         {item.quantity} x{' '}
-                                                        {isPriceVisible ? (
-                                                            formatPrice(item.product.price)
-                                                        ) : (
-                                                            <span className="text-muted-foreground">PIN gerekli</span>
-                                                        )}
+                                                        {isPriceVisible 
+                                                            ? formatPrice(item.product.price)
+                                                            : formatPrice(item.product.retail_price ?? item.product.price)}
                                                     </p>
                                                 </div>
                                                 <div className="text-right font-medium">
-                                                    {isPriceVisible ? (
-                                                        formatPrice(item.product.price * item.quantity)
-                                                    ) : (
-                                                        <span className="text-muted-foreground">PIN gerekli</span>
-                                                    )}
+                                                    {isPriceVisible 
+                                                        ? formatPrice(item.product.price * item.quantity)
+                                                        : formatPrice((item.product.retail_price ?? item.product.price) * item.quantity)}
                                                 </div>
                                             </div>
                                         ))}
@@ -343,25 +355,17 @@ export default function CheckoutIndex({
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Ara Toplam</span>
                                         <span className="font-medium">
-                                            {isPriceVisible ? (
-                                                formatPrice(subtotal)
-                                            ) : (
-                                                <span className="text-muted-foreground">PIN gerekli</span>
-                                            )}
+                                            {formatPrice(displaySubtotal)}
                                         </span>
                                     </div>
-                                    {data.payment_method === 'paytr_link' && commission_rate && commission_rate > 0 && commission_amount && commission_amount > 0 && (
+                                    {data.payment_method === 'paytr_link' && commission_rate && commission_rate > 0 && (
                                         <>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">
                                                     Komisyon (%{commission_rate.toFixed(2)})
                                                 </span>
                                                 <span className="font-medium">
-                                                    {isPriceVisible ? (
-                                                        formatPrice(commission_amount)
-                                                    ) : (
-                                                        <span className="text-muted-foreground">PIN gerekli</span>
-                                                    )}
+                                                    {formatPrice(displayCommissionAmount)}
                                                 </span>
                                             </div>
                                             <Separator />
@@ -370,15 +374,7 @@ export default function CheckoutIndex({
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Toplam</span>
                                         <span className="text-primary">
-                                            {isPriceVisible ? (
-                                                formatPrice(
-                                                    data.payment_method === 'paytr_link' && total_with_commission 
-                                                        ? total_with_commission 
-                                                        : total
-                                                )
-                                            ) : (
-                                                <span className="text-muted-foreground">PIN gerekli</span>
-                                            )}
+                                            {formatPrice(displayTotal)}
                                         </span>
                                     </div>
                                     <Button type="submit" className="w-full" size="lg" disabled={processing}>

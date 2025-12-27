@@ -13,6 +13,7 @@ interface Product {
     name: string
     sku: string
     price: number
+    retail_price?: number
     base_price: number
     image: string | null
     categories: Array<{ id: number; name: string; slug: string }>
