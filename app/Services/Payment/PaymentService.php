@@ -2,15 +2,17 @@
 
 namespace App\Services\Payment;
 
+use App\Models\PaymentLink;
 use FurkanMeclis\PayTRLink\Facades\PayTRLink;
 use FurkanMeclis\PayTRLink\Data\CreateLinkData;
 use FurkanMeclis\PayTRLink\Data\CallbackData;
+use FurkanMeclis\PayTRLink\Data\SendEmailData;
 use FurkanMeclis\PayTRLink\Data\SendSmsData;
 use FurkanMeclis\PayTRLink\Enums\CurrencyEnum;
 use FurkanMeclis\PayTRLink\Enums\LinkTypeEnum;
 use FurkanMeclis\PayTRLink\Exceptions\PayTRRequestException;
 use FurkanMeclis\PayTRLink\Exceptions\PayTRValidationException;
-
+use Illuminate\Support\Facades\Log;
 class PaymentService
 {
     /**
@@ -20,6 +22,8 @@ class PaymentService
      * @param  float  $amount  Amount in TL
      * @param  string  $customerName  Customer full name
      * @param  string|null  $customerEmail  Customer email (optional)
+     * @param  string|null  $customerPhone  Customer phone (optional)
+     * @param  int|null  $orderId  Order ID (optional, for relationship)
      * @param  int  $maxInstallment  Maximum installment count
      * @return array{success: bool, link?: string, link_id?: string, message?: string, errors?: array}
      */
@@ -28,9 +32,13 @@ class PaymentService
         float $amount,
         string $customerName,
         ?string $customerEmail = null,
+        ?string $customerPhone = null,
+        ?int $orderId = null,
         int $maxInstallment = 12
     ): array {
         try {
+            $expiryDate = now()->addDays(7);
+            
             $linkData = CreateLinkData::from([
                 'name' => "Sipariş #{$orderNo}",
                 'price' => $amount, // Automatically converted to kuruş by the package
@@ -39,7 +47,7 @@ class PaymentService
                 'max_installment' => $maxInstallment,
                 'min_count' => 1,
                 'lang' => 'tr',
-                'expiry_date' => now()->addDays(7)->format('Y-m-d H:i:s'),
+                'expiry_date' => $expiryDate->format('Y-m-d H:i:s'),
                 'description' => "Zeon Moto - Sipariş #{$orderNo}",
                 ...($customerEmail ? ['email' => $customerEmail] : []),
             ]);
@@ -47,6 +55,23 @@ class PaymentService
             $response = PayTRLink::create($linkData);
 
             if ($response->isSuccess()) {
+                // Save payment link to database
+                PaymentLink::create([
+                    'paytr_link_id' => $response->id,
+                    'order_id' => $orderId,
+                    'link_url' => $response->link,
+                    'name' => "Sipariş #{$orderNo}",
+                    'price' => $amount,
+                    'currency' => CurrencyEnum::TL->value,
+                    'link_type' => $customerEmail ? LinkTypeEnum::Collection->value : LinkTypeEnum::Product->value,
+                    'max_installment' => $maxInstallment,
+                    'expiry_date' => $expiryDate,
+                    'status' => 'pending',
+                    'merchant_oid' => $orderNo,
+                    'customer_email' => $customerEmail,
+                    'customer_phone' => $customerPhone,
+                ]);
+
                 return [
                     'success' => true,
                     'link' => $response->link,
@@ -75,6 +100,10 @@ class PaymentService
             ];
 
         } catch (\Exception $e) {
+            Log::error('Ödeme linki oluşturulurken bir hata oluştu', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return [
                 'success' => false,
                 'message' => 'Ödeme linki oluşturulurken bir hata oluştu',
@@ -139,7 +168,7 @@ class PaymentService
     {
         try {
             // Normalize phone number (remove +90, spaces, dashes, etc.)
-            $normalizedPhone = $this->normalizePhoneNumber($phone);
+            $normalizedPhone = "0".$this->normalizePhoneNumber($phone);
 
             if (!$normalizedPhone) {
                 return [
@@ -177,6 +206,56 @@ class PaymentService
             return [
                 'success' => false,
                 'message' => 'SMS gönderilirken bir hata oluştu',
+            ];
+        }
+    }
+
+    /**
+     * Send payment link via Email.
+     *
+     * @param  string  $linkId  PayTR link ID
+     * @param  string  $email  Customer email address
+     * @return array{success: bool, message?: string}
+     */
+    public function sendPaymentLinkEmail(string $linkId, string $email): array
+    {
+        try {
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return [
+                    'success' => false,
+                    'message' => 'Geçersiz email adresi',
+                ];
+            }
+
+            $emailData = SendEmailData::from([
+                'link_id' => $linkId,
+                'email' => $email,
+            ]);
+
+            $response = PayTRLink::sendEmail($emailData);
+
+            if ($response->isSuccess()) {
+                return [
+                    'success' => true,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $response->message ?? 'Email gönderilemedi',
+                'errors' => $response->errors ?? [],
+            ];
+
+        } catch (PayTRRequestException $e) {
+            return [
+                'success' => false,
+                'message' => 'Email gönderilirken API hatası oluştu',
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Email gönderilirken bir hata oluştu',
             ];
         }
     }

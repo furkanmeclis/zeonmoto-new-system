@@ -150,7 +150,9 @@ class CheckoutController extends Controller
                     orderNo: $order->order_no,
                     amount: $total,
                     customerName: $customerName,
-                    customerEmail: null,
+                    customerEmail: $request->email ?? null,
+                    customerPhone: $request->phone ?? null,
+                    orderId: $order->id,
                     maxInstallment: 12
                 );
 

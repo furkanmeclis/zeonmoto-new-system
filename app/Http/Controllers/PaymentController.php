@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\PaymentLink;
 use App\Services\Payment\PaymentService;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,18 @@ class PaymentController extends Controller
 
         if (!$callback) {
             return response('Invalid data', 400);
+        }
+
+        // Find payment link by merchant_oid (order_no)
+        $paymentLink = PaymentLink::where('merchant_oid', $callback->merchant_oid)->first();
+
+        if ($paymentLink) {
+            // Update payment link with callback data
+            $paymentLink->update([
+                'status' => $callback->status === 'success' ? 'paid' : 'pending',
+                'callback_data' => $request->all(),
+                'callback_received_at' => now(),
+            ]);
         }
 
         // Find order by merchant_oid (we'll use order_no as merchant_oid)
