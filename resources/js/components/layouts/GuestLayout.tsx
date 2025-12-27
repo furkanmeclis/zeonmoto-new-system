@@ -1,11 +1,10 @@
 import { PropsWithChildren, useEffect, useState } from 'react'
 import { Link, usePage } from '@inertiajs/react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Menu, Package, Heart, Lock } from 'lucide-react'
+import { ShoppingCart, Menu, Package, Heart, Lock, LogOut } from 'lucide-react'
 import { FaWhatsapp, FaInstagram, FaTiktok, FaPhone } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Badge } from '@/components/ui/badge'
 import { getFavorites } from '@/lib/favorites'
 import { PricePinDialog } from '@/components/PricePinDialog'
 import { usePriceVisibility } from '@/hooks/usePriceVisibility'
@@ -18,7 +17,7 @@ export default function GuestLayout({ children, cartCount = 0 }: GuestLayoutProp
     const { url } = usePage()
     const [favoritesCount, setFavoritesCount] = useState(0)
     const [pinDialogOpen, setPinDialogOpen] = useState(false)
-    const { isPriceVisible } = usePriceVisibility()
+    const { isPriceVisible, resetVerification } = usePriceVisibility()
 
     useEffect(() => {
         // Initial load
@@ -126,22 +125,28 @@ export default function GuestLayout({ children, cartCount = 0 }: GuestLayoutProp
 
             {/* Sticky Floating Buttons */}
             <div className="fixed bottom-6 left-6 right-6 z-50 flex justify-between pointer-events-none">
-                {/* Price PIN Button - Sol Alt */}
-                <button
-                    onClick={() => setPinDialogOpen(true)}
-                    className="pointer-events-auto relative group flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-lg border-2 border-yellow-200 hover:border-yellow-500 transition-all hover:scale-110"
-                    title={isPriceVisible ? 'Fiyatlar görünür' : 'Fiyatları görüntülemek için PIN girin'}
-                >
-                    <Lock
-                        className={`h-6 w-6 transition-colors ${isPriceVisible
-                            ? 'text-yellow-600'
-                            : 'text-muted-foreground group-hover:text-yellow-600'
-                            }`}
-                    />
-                    {isPriceVisible && (
+                {/* Price PIN / Logout Button - Sol Alt */}
+                {isPriceVisible ? (
+                    <button
+                        onClick={() => {
+                            resetVerification()
+                            window.location.reload()
+                        }}
+                        className="pointer-events-auto relative group flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-lg border-2 border-green-500 hover:border-green-600 transition-all hover:scale-110"
+                        title="Çıkış yap"
+                    >
+                        <LogOut className="h-6 w-6 text-green-600 transition-colors" />
                         <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    )}
-                </button>
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => setPinDialogOpen(true)}
+                        className="pointer-events-auto relative group flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-lg border-2 border-yellow-200 hover:border-yellow-500 transition-all hover:scale-110"
+                        title="Fiyatları görüntülemek için PIN girin"
+                    >
+                        <Lock className="h-6 w-6 text-muted-foreground group-hover:text-yellow-600 transition-colors" />
+                    </button>
+                )}
 
                 {/* Favorites Button - Sağ Alt */}
                 <Link
