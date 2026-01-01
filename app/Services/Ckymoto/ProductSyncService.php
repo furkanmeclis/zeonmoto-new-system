@@ -18,11 +18,19 @@ class ProductSyncService
      *
      * @param array<string, mixed> $externalProduct
      * @param string $provider
-     * @return Product
+     * @param bool $syncImages
+     * @param bool $priceOnly
+     * @param bool $newProductsOnly
+     * @return Product|null
      * @throws \Exception
      */
-    public function syncProduct(array $externalProduct, string $provider = 'ckymoto'): Product
-    {
+    public function syncProduct(
+        array $externalProduct,
+        string $provider = 'ckymoto',
+        bool $syncImages = true,
+        bool $priceOnly = false,
+        bool $newProductsOnly = false
+    ): ?Product {
         $hash = $this->generateExternalHash($provider, $externalProduct['uniqid'] ?? '');
 
         if (empty($hash)) {
@@ -32,10 +40,15 @@ class ProductSyncService
         $productExternal = ProductExternal::where('external_hash', $hash)->first();
 
         if ($productExternal) {
-            return $this->updateProduct($productExternal->product, $externalProduct, $provider);
+            // newProductsOnly modunda mevcut ürünleri atla
+            if ($newProductsOnly) {
+                return null;
+            }
+
+            return $this->updateProduct($productExternal->product, $externalProduct, $provider, $syncImages, $priceOnly);
         }
 
-        return $this->createProduct($externalProduct, $provider);
+        return $this->createProduct($externalProduct, $provider, $syncImages);
     }
 
     /**
@@ -43,12 +56,13 @@ class ProductSyncService
      *
      * @param array<string, mixed> $externalProduct
      * @param string $provider
+     * @param bool $syncImages
      * @return Product
      * @throws \Exception
      */
-    protected function createProduct(array $externalProduct, string $provider): Product
+    protected function createProduct(array $externalProduct, string $provider, bool $syncImages = true): Product
     {
-        return DB::transaction(function () use ($externalProduct, $provider) {
+        return DB::transaction(function () use ($externalProduct, $provider, $syncImages) {
             $sku = $externalProduct['sku'] ?? '';
             
             // SKU ile mevcut ürün kontrolü
@@ -70,7 +84,7 @@ class ProductSyncService
                 }
                 
                 // Mevcut ürünü güncelle
-                return $this->updateProduct($existingProduct, $externalProduct, $provider);
+                return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false);
             }
 
             // Son sort_order değerini al
@@ -109,7 +123,7 @@ class ProductSyncService
                         }
                         
                         // Mevcut ürünü güncelle
-                        return $this->updateProduct($existingProduct, $externalProduct, $provider);
+                        return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false);
                     }
                 }
                 
@@ -128,11 +142,13 @@ class ProductSyncService
                 'external_hash' => $hash,
             ]);
 
-            // External görselleri ekle
-            $this->syncProductImages($product, $externalProduct['images'] ?? []);
+            // External görselleri ekle (syncImages true ise)
+            if ($syncImages) {
+                $this->syncProductImages($product, $externalProduct['images'] ?? []);
+            }
 
-            // Kategori ilişkisi kur
-            if (! empty($externalProduct['category'])) {
+            // Kategori ilişkisi kur (syncImages true ise - yeni ürünlerde kategori de dahil)
+            if ($syncImages && ! empty($externalProduct['category'])) {
                 $categoryName = trim($externalProduct['category']);
                 $category = Category::where('external_name', $categoryName)->first();
                 if ($category) {
@@ -169,31 +185,50 @@ class ProductSyncService
      * @param Product $product
      * @param array<string, mixed> $externalProduct
      * @param string $provider
+     * @param bool $syncImages
+     * @param bool $priceOnly
      * @return Product
      */
-    protected function updateProduct(Product $product, array $externalProduct, string $provider): Product
-    {
-        return DB::transaction(function () use ($product, $externalProduct, $provider) {
-            // Sadece güncellenebilir alanları güncelle
-            $product->update([
-                'name' => $externalProduct['name'] ?? $product->name,
-                'sku' => $externalProduct['sku'] ?? $product->sku,
-                'base_price' => $externalProduct['price'] ?? $product->base_price,
-                // custom_price güncellenmez (kullanıcı tarafından manuel girilir)
-                // final_price güncellenmez (dinamik hesaplanır)
-            ]);
+    protected function updateProduct(
+        Product $product,
+        array $externalProduct,
+        string $provider,
+        bool $syncImages = true,
+        bool $priceOnly = false
+    ): Product {
+        return DB::transaction(function () use ($product, $externalProduct, $provider, $syncImages, $priceOnly) {
+            // priceOnly modunda sadece fiyat güncellenir
+            if ($priceOnly) {
+                $product->update([
+                    'base_price' => $externalProduct['price'] ?? $product->base_price,
+                ]);
+            } else {
+                // Sadece güncellenebilir alanları güncelle
+                $product->update([
+                    'name' => $externalProduct['name'] ?? $product->name,
+                    'sku' => $externalProduct['sku'] ?? $product->sku,
+                    'base_price' => $externalProduct['price'] ?? $product->base_price,
+                    // custom_price güncellenmez (kullanıcı tarafından manuel girilir)
+                    // final_price güncellenmez (dinamik hesaplanır)
+                ]);
+            }
 
             // is_active, sort_order, custom_price, final_price güncellenmez (admin kontrolünde)
 
-            // Yeni external görselleri ekle (mevcut external görselleri silmez)
-            $this->syncProductImages($product, $externalProduct['images'] ?? []);
+            // priceOnly modunda resim ve kategori sync edilmez
+            if (! $priceOnly) {
+                // Yeni external görselleri ekle (mevcut external görselleri silmez)
+                if ($syncImages) {
+                    $this->syncProductImages($product, $externalProduct['images'] ?? []);
+                }
 
-            // Kategori ilişkisi kur
-            if (! empty($externalProduct['category'])) {
-                $categoryName = trim($externalProduct['category']);
-                $category = Category::where('external_name', $categoryName)->first();
-                if ($category) {
-                    $product->categories()->syncWithoutDetaching([$category->id]);
+                // Kategori ilişkisi kur (syncImages true ise)
+                if ($syncImages && ! empty($externalProduct['category'])) {
+                    $categoryName = trim($externalProduct['category']);
+                    $category = Category::where('external_name', $categoryName)->first();
+                    if ($category) {
+                        $product->categories()->syncWithoutDetaching([$category->id]);
+                    }
                 }
             }
 

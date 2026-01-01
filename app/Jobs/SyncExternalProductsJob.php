@@ -18,12 +18,29 @@ class SyncExternalProductsJob implements ShouldQueue
 
     protected string $provider;
 
+    protected bool $syncImages;
+
+    protected bool $priceOnly;
+
+    protected bool $newProductsOnly;
+
+    protected bool $categorySync;
+
     /**
      * Create a new job instance.
      */
-    public function __construct(string $provider = 'ckymoto')
-    {
+    public function __construct(
+        string $provider = 'ckymoto',
+        bool $syncImages = true,
+        bool $priceOnly = false,
+        bool $newProductsOnly = false,
+        bool $categorySync = true
+    ) {
         $this->provider = $provider;
+        $this->syncImages = $syncImages;
+        $this->priceOnly = $priceOnly;
+        $this->newProductsOnly = $newProductsOnly;
+        $this->categorySync = $categorySync;
     }
 
     /**
@@ -44,8 +61,8 @@ class SyncExternalProductsJob implements ShouldQueue
             $products = $data['products'] ?? [];
             $categories = $data['categories'] ?? [];
 
-            // Önce kategorileri senkronize et
-            if (! empty($categories)) {
+            // Önce kategorileri senkronize et (priceOnly modunda değilse)
+            if ($this->categorySync && ! $this->priceOnly && ! empty($categories)) {
                 Log::info('Starting category sync', [
                     'provider' => $this->provider,
                     'total_categories' => count($categories),
@@ -72,13 +89,26 @@ class SyncExternalProductsJob implements ShouldQueue
             }
 
             $successCount = 0;
+            $skippedCount = 0;
             $errorCount = 0;
 
             // Her ürünü senkronize et
             foreach ($products as $externalProduct) {
                 try {
-                    $productSyncService->syncProduct($externalProduct, $this->provider);
-                    $successCount++;
+                    $result = $productSyncService->syncProduct(
+                        $externalProduct,
+                        $this->provider,
+                        $this->syncImages,
+                        $this->priceOnly,
+                        $this->newProductsOnly
+                    );
+
+                    // newProductsOnly modunda null dönerse skip edildi demektir
+                    if ($result === null) {
+                        $skippedCount++;
+                    } else {
+                        $successCount++;
+                    }
                 } catch (\Exception $e) {
                     $errorCount++;
                     Log::error('Failed to sync product', [
@@ -97,7 +127,11 @@ class SyncExternalProductsJob implements ShouldQueue
                 'provider' => $this->provider,
                 'total' => count($products),
                 'success' => $successCount,
+                'skipped' => $skippedCount,
                 'errors' => $errorCount,
+                'sync_images' => $this->syncImages,
+                'price_only' => $this->priceOnly,
+                'new_products_only' => $this->newProductsOnly,
             ]);
         } catch (\Exception $e) {
             Log::error('External products sync failed', [

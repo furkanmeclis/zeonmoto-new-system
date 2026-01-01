@@ -18,7 +18,11 @@ class SyncCkymotoProductsCommand extends Command
     protected $signature = 'products:sync-ckymoto
                             {--queue : Run sync in queue}
                             {--dry-run : Test mode (no changes)}
-                            {--category-sync : Sync categories}';
+                            {--category-sync : Sync categories}
+                            {--images : Sync images (default: true)}
+                            {--no-images : Skip image sync}
+                            {--price-only : Only update product prices}
+                            {--new-products-only : Only add new products, skip existing ones}';
 
     /**
      * The console command description.
@@ -37,9 +41,31 @@ class SyncCkymotoProductsCommand extends Command
         $useQueue = $this->option('queue');
         $dryRun = $this->option('dry-run');
         $categorySync = $this->option('category-sync');
+        $noImages = $this->option('no-images');
+        $syncImages = ! $noImages; // Default true, unless --no-images is specified
+        $priceOnly = $this->option('price-only');
+        $newProductsOnly = $this->option('new-products-only');
+
+        // Validasyon: price-only ve new-products-only aynı anda aktif olamaz
+        if ($priceOnly && $newProductsOnly) {
+            $this->error('Cannot use --price-only and --new-products-only together.');
+
+            return Command::FAILURE;
+        }
 
         if ($dryRun) {
             $this->warn('DRY RUN MODE: No changes will be made');
+        }
+
+        // Sync mode bilgisi
+        if ($priceOnly) {
+            $this->info('Mode: Price update only (images and categories will be skipped)');
+        } elseif ($newProductsOnly) {
+            $this->info('Mode: New products only (existing products will be skipped)');
+        }
+
+        if (! $syncImages) {
+            $this->info('Image sync is disabled.');
         }
 
         try {
@@ -64,7 +90,7 @@ class SyncCkymotoProductsCommand extends Command
             $this->info('Fetching products from API...');
             $data = $apiClient->fetchProducts();
             $products = $data['products'] ?? [];
-            if ($categorySync) {
+            if ($categorySync && ! $priceOnly) {
                 $categories = $data['categories'] ?? [];
                 if (!empty($categories)) {
                     $this->info('Syncing categories...');
@@ -74,7 +100,11 @@ class SyncCkymotoProductsCommand extends Command
                     $this->warn('No categories found in API response.');
                 }
             } else {
-                $this->info('Categories sync skipped.');
+                if ($priceOnly) {
+                    $this->info('Categories sync skipped (price-only mode).');
+                } else {
+                    $this->info('Categories sync skipped.');
+                }
             }
             if (empty($products)) {
                 $this->warn('No products found in API response.');
@@ -83,20 +113,37 @@ class SyncCkymotoProductsCommand extends Command
             }
 
             $this->info('Found '.count($products).' products to sync.');
-            $this->info('External images will be downloaded and stored locally during sync.');
+            if ($syncImages && ! $priceOnly) {
+                $this->info('External images will be downloaded and stored locally during sync.');
+            }
 
             $bar = $this->output->createProgressBar(count($products));
             $bar->start();
 
             $successCount = 0;
+            $skippedCount = 0;
             $errorCount = 0;
 
             foreach ($products as $externalProduct) {
                 try {
                     if (! $dryRun) {
-                        $syncService->syncProduct($externalProduct, 'ckymoto');
+                        $result = $syncService->syncProduct(
+                            $externalProduct,
+                            'ckymoto',
+                            $syncImages,
+                            $priceOnly,
+                            $newProductsOnly
+                        );
+
+                        // newProductsOnly modunda null dönerse skip edildi demektir
+                        if ($result === null) {
+                            $skippedCount++;
+                        } else {
+                            $successCount++;
+                        }
+                    } else {
+                        $successCount++;
                     }
-                    $successCount++;
                 } catch (\Illuminate\Database\QueryException $e) {
                     // UNIQUE constraint violation (SKU duplicate) - bu artık ProductSyncService'de handle ediliyor
                     // Ama yine de log'layalım
@@ -133,13 +180,19 @@ class SyncCkymotoProductsCommand extends Command
             $this->newLine(2);
 
             $this->info("Sync completed!");
+            $tableData = [
+                ['Success', $successCount],
+                ['Errors', $errorCount],
+                ['Total', count($products)],
+            ];
+
+            if ($skippedCount > 0) {
+                $tableData[] = ['Skipped (existing)', $skippedCount];
+            }
+
             $this->table(
                 ['Status', 'Count'],
-                [
-                    ['Success', $successCount],
-                    ['Errors', $errorCount],
-                    ['Total', count($products)],
-                ]
+                $tableData
             );
 
             return Command::SUCCESS;
