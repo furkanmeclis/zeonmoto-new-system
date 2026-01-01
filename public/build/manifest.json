@@ -20,7 +20,7 @@
     "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-CEnKeF65.css",
+    "file": "assets/app-CEmfUQu8.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -29,7 +29,7 @@
     ]
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-B7edB-IO.css",
+    "file": "assets/theme-BHOlNeIy.css",
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.tsx": {
@@ -42,7 +42,7 @@
     ]
   },
   "vendor/resma/filament-awin-theme/resources/css/theme.css": {
-    "file": "assets/theme-B1lCKSHF.css",
+    "file": "assets/theme-9Ij4mCCu.css",
     "src": "vendor/resma/filament-awin-theme/resources/css/theme.css",
     "isEntry": true,
     "name": "theme",
