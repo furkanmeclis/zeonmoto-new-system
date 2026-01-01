@@ -37,7 +37,10 @@ class SyncCkymotoProducts extends Page implements HasSchemas
     public ?array $data = [
         'use_queue' => false,
         'dry_run' => false,
-        'category_sync' => false,
+        'category_sync' => true,
+        'sync_images' => true,
+        'price_only' => false,
+        'new_products_only' => false,
     ];
 
     public string $syncStatus = '';
@@ -51,10 +54,55 @@ class SyncCkymotoProducts extends Page implements HasSchemas
             ->components([
                 Section::make('Senkronizasyon Ayarları')
                     ->description('CKYMOTO API\'den ürün ve kategori senkronizasyonu yapmak için ayarları yapın. External görseller otomatik olarak indirilip storage\'a kaydedilir.')
-                    ->schema([ Checkbox::make('category_sync')
-                    ->label('Kategorileri de Senkronize Et')
-                    ->helperText('Ürünlerle birlikte kategorileri de senkronize eder.')
-                    ->default(true),
+                    ->schema([
+                        Checkbox::make('sync_images')
+                            ->label('Resimler Dahil Edilsin')
+                            ->helperText('External görseller indirilip storage\'a kaydedilir.')
+                            ->default(true)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $set('price_only', false);
+                                }
+                            }),
+
+                        Checkbox::make('price_only')
+                            ->label('Sadece Fiyat Güncellemesi')
+                            ->helperText('Sadece ürün fiyatları güncellenir. Resimler ve kategoriler sync edilmez.')
+                            ->default(false)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $set('sync_images', false);
+                                    $set('new_products_only', false);
+                                    $set('category_sync', false);
+                                }
+                            }),
+
+                        Checkbox::make('new_products_only')
+                            ->label('Sadece Yeni Ürünler Eklensin')
+                            ->helperText('Mevcut ürünler atlanır, sadece yeni ürünler eklenir. Resimler ve kategoriler otomatik dahil edilir.')
+                            ->default(false)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $set('sync_images', true);
+                                    $set('category_sync', true);
+                                    $set('price_only', false);
+                                }
+                            }),
+
+                        Checkbox::make('category_sync')
+                            ->label('Kategorileri de Senkronize Et')
+                            ->helperText('Ürünlerle birlikte kategorileri de senkronize eder.')
+                            ->default(true)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $set('price_only', false);
+                                }
+                            }),
+
                         Checkbox::make('use_queue')
                             ->label('Kuyrukta Çalıştır(Desteklenmiyor)')
                             ->helperText('Sync işlemi arka planda kuyrukta çalışacak. Büyük veri setleri için önerilir.')
@@ -65,8 +113,6 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                             ->label('Test Modu (Dry Run)')
                             ->helperText('Değişiklik yapmadan test etmek için aktif edin. Veritabanına kayıt yapılmaz.')
                             ->default(false),
-
-                       
                     ])
                     ->columns(1),
             ]);
@@ -132,13 +178,33 @@ class SyncCkymotoProducts extends Page implements HasSchemas
         $useQueue = $data['use_queue'] ?? false;
         $dryRun = $data['dry_run'] ?? false;
         $categorySync = $data['category_sync'] ?? false;
+        $syncImages = $data['sync_images'] ?? true;
+        $priceOnly = $data['price_only'] ?? false;
+        $newProductsOnly = $data['new_products_only'] ?? false;
+
+        // Validasyon: price_only ve new_products_only aynı anda aktif olamaz
+        if ($priceOnly && $newProductsOnly) {
+            Notification::make()
+                ->title('Geçersiz Seçim')
+                ->body('"Sadece Fiyat Güncellemesi" ve "Sadece Yeni Ürünler Eklensin" aynı anda seçilemez.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         try {
             $this->syncStatus = 'running';
 
             if ($useQueue) {
                 // Kuyruk modunda job dispatch et
-                \App\Jobs\SyncExternalProductsJob::dispatch('ckymoto');
+                \App\Jobs\SyncExternalProductsJob::dispatch(
+                    'ckymoto',
+                    $syncImages,
+                    $priceOnly,
+                    $newProductsOnly,
+                    $categorySync
+                );
 
                 Notification::make()
                     ->title('Senkronizasyon Başlatıldı')
@@ -164,6 +230,17 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                 }
                 if ($categorySync) {
                     $options['--category-sync'] = true;
+                }
+                if ($syncImages) {
+                    $options['--images'] = true;
+                } else {
+                    $options['--no-images'] = true;
+                }
+                if ($priceOnly) {
+                    $options['--price-only'] = true;
+                }
+                if ($newProductsOnly) {
+                    $options['--new-products-only'] = true;
                 }
 
                 // Command çıktısını yakalamak için
@@ -222,6 +299,71 @@ class SyncCkymotoProducts extends Page implements HasSchemas
     public static function getMaxWidth(): MaxWidth
     {
         return MaxWidth::SixXL;
+    }
+
+    /**
+     * Cron komutunu oluşturur
+     */
+    public function getCronCommand(string $mode = 'default'): string
+    {
+        $basePath = base_path();
+        $phpPath = PHP_BINARY ?: 'php';
+
+        // PHP path'i düzenle (mutlak path olmalı)
+        if (! str_starts_with($phpPath, '/')) {
+            // Relative path ise, which komutu ile bulmaya çalış
+            $phpPath = 'php'; // Fallback olarak sadece php
+        }
+
+        $command = 'products:sync-ckymoto';
+        $options = '--category-sync';
+
+        // Mode'a göre seçenekleri ekle
+        switch ($mode) {
+            case 'price-only':
+                $options .= ' --price-only';
+                break;
+            case 'new-products-only':
+                $options .= ' --new-products-only';
+                break;
+            case 'no-images':
+                $options .= ' --no-images';
+                break;
+            case 'images':
+                $options .= ' --images';
+                break;
+            default:
+                // Default: category-sync ve images (default true)
+                break;
+        }
+
+        // Cron formatı: Her gün saat 02:00
+        return "0 2 * * * cd {$basePath} && {$phpPath} artisan {$command} {$options} >> /dev/null 2>&1";
+    }
+
+    /**
+     * Tüm cron komut örneklerini döndürür
+     */
+    public function getCronExamples(): array
+    {
+        return [
+            'default' => [
+                'label' => 'Varsayılan (Resimler ve Kategoriler Dahil)',
+                'command' => $this->getCronCommand('default'),
+            ],
+            'price-only' => [
+                'label' => 'Sadece Fiyat Güncellemesi',
+                'command' => $this->getCronCommand('price-only'),
+            ],
+            'new-products-only' => [
+                'label' => 'Sadece Yeni Ürünler',
+                'command' => $this->getCronCommand('new-products-only'),
+            ],
+            'no-images' => [
+                'label' => 'Resimler Olmadan',
+                'command' => $this->getCronCommand('no-images'),
+            ],
+        ];
     }
 }
 

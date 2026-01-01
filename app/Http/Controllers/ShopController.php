@@ -91,8 +91,11 @@ class ShopController extends Controller
     /**
      * Display product detail page.
      */
-    public function show(Request $request, Product $product): Response
+    public function show(Request $request, string $prefixied_id): Response
     {
+        list($sku, $id) = explode('-', $prefixied_id);
+        $product = Product::where('sku', $sku)->where('id', $id)->first();
+
         if (!$product->is_active) {
             abort(404);
         }

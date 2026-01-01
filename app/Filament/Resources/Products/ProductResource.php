@@ -70,4 +70,13 @@ class ProductResource extends Resource
             'edit' => EditProduct::route('/{record}/edit'),
         ];
     }
+
+    /**
+     * Resolve the record from the route.
+     * This allows Filament to use our custom route binding.
+     */
+    public static function resolveRecordFromRoute($key): ?Product
+    {
+        return static::getModel()::resolveRouteBinding($key);
+    }
 }
