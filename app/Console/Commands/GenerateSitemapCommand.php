@@ -57,7 +57,9 @@ class GenerateSitemapCommand extends Command
         $this->info("Found {$products->count()} active products");
 
         foreach ($products as $product) {
-            $productUrl = $baseUrl . '/products/' . $product->getRouteKey();
+            $sku = $product->sku;
+            $id = $product->id;
+            $productUrl = $baseUrl . '/products/' . $sku . '-' . $id;
             $lastmod = $product->updated_at 
                 ? Carbon::parse($product->updated_at)->toIso8601String()
                 : Carbon::now()->toIso8601String();
