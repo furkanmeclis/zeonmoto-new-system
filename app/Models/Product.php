@@ -19,6 +19,7 @@ class Product extends Model
         'final_price',
         'retail_price',
         'is_active',
+        'has_stock',
         'sort_order',
     ];
 
@@ -28,6 +29,7 @@ class Product extends Model
         'final_price' => 'decimal:2',
         'retail_price' => 'decimal:2',
         'is_active' => 'boolean',
+        'has_stock' => 'boolean',
         'sort_order' => 'integer',
     ];
 
@@ -72,6 +74,12 @@ class Product extends Model
                 // Calculate final price before update
                 $finalPrice = $product->calculatePrice()->final;
                 $product->retail_price = $finalPrice;
+            }
+
+            // Eğer has_stock = true ise ve is_active değişiyorsa, is_active'i koru
+            if ($product->has_stock && $product->isDirty('is_active')) {
+                // Mevcut is_active değerini koru (Ckymoto'dan gelen değişikliği engelle)
+                $product->is_active = $product->getOriginal('is_active');
             }
         });
     }

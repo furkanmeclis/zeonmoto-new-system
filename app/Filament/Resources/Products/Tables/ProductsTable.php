@@ -66,6 +66,11 @@ class ProductsTable
                     ->placeholder('Tümü')
                     ->trueLabel('Aktif Ürünler')
                     ->falseLabel('Pasif Ürünler'),
+                TernaryFilter::make('has_stock')
+                    ->label('Ekstra Stok Durumu')
+                    ->placeholder('Tümü')
+                    ->trueLabel('Ekstra Stoku Olanlar')
+                    ->falseLabel('Ekstra Stoku Olmayanlar'),
                 SelectFilter::make('category')
                     ->label('Kategori')
                     ->relationship('categories', 'display_name')
@@ -234,6 +239,19 @@ class ProductsTable
                     ->relationManager(ProductImagesRelationManager::make())
                     ->record(fn ($record) => $record)
                     ->compact(),
+                Action::make('toggle_has_stock')
+                    ->label(fn ($record) => $record->has_stock ? 'Ekstra Stok Kapat' : 'Ekstra Stok Aç')
+                    ->icon(fn ($record) => $record->has_stock ? 'heroicon-o-shield-exclamation' : 'heroicon-o-shield-check')
+                    ->color(fn ($record) => $record->has_stock ? 'warning' : 'info')
+                    ->requiresConfirmation()
+                    ->action(function ($record): void {
+                        $record->update(['has_stock' => !$record->has_stock]);
+
+                        Notification::make()
+                            ->title($record->has_stock ? 'Ekstra stok açıldı' : 'Ekstra stok kapatıldı')
+                            ->success()
+                            ->send();
+                    }),
                 ViewAction::make(),
                 EditAction::make(),
             ])
@@ -342,6 +360,36 @@ class ProductsTable
 
                             Notification::make()
                                 ->title("{$count} ürün deaktif edildi")
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    BulkAction::make('set_has_stock_true')
+                        ->label('Ekstra Stok Aç')
+                        ->icon('heroicon-o-shield-check')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $count = $records->count();
+                            $records->each->update(['has_stock' => true]);
+
+                            Notification::make()
+                                ->title("{$count} ürüne ekstra stok eklendi")
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                    BulkAction::make('set_has_stock_false')
+                        ->label('Ekstra Stok Kapat')
+                        ->icon('heroicon-o-shield-exclamation')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->action(function (Collection $records): void {
+                            $count = $records->count();
+                            $records->each->update(['has_stock' => false]);
+
+                            Notification::make()
+                                ->title("{$count} üründen ekstra stok kaldırıldı")
                                 ->success()
                                 ->send();
                         })
@@ -522,6 +570,12 @@ class ProductsTable
                 ->sortable()
                 ->onColor('success')
                 ->offColor('danger'),
+            ToggleColumn::make('has_stock')
+                ->label('Ekstra Stok')
+                ->sortable()
+                ->onColor('info')
+                ->offColor('gray')
+                ->tooltip('Açık olduğunda, Ckymoto\'dan is_active=0 gelse bile is_active kapanmaz'),
             TextColumn::make('sort_order')
                 ->label('Sıralama')
                 ->sortable()
@@ -586,6 +640,12 @@ class ProductsTable
                         ->sortable()
                         ->onColor('success')
                         ->offColor('danger')
+                        ->alignEnd(),
+                    ToggleColumn::make('has_stock')
+                        ->label('Ekstra Stok')
+                        ->sortable()
+                        ->onColor('info')
+                        ->offColor('gray')
                         ->alignEnd(),
                 ]),
             ])->space(3)->extraAttributes([
