@@ -3,6 +3,7 @@
 namespace App\Services\Payment;
 
 use App\Models\PaymentLink;
+use App\Settings\BankAccountSettings;
 use FurkanMeclis\PayTRLink\Facades\PayTRLink;
 use FurkanMeclis\PayTRLink\Data\CreateLinkData;
 use FurkanMeclis\PayTRLink\Data\CallbackData;
@@ -119,12 +120,14 @@ class PaymentService
      */
     public function getBankAccountInfo(): array
     {
-        return config('payment.bank_account', [
-            'name' => '',
-            'bank' => '',
-            'iban' => '',
-            'branch' => '',
-        ]);
+        $settings = app(BankAccountSettings::class);
+
+        return [
+            'name' => $settings->name ?? '',
+            'bank' => $settings->bank ?? '',
+            'iban' => $settings->iban ?? '',
+            'branch' => $settings->branch ?? '',
+        ];
     }
 
     /**
