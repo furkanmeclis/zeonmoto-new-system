@@ -22,7 +22,8 @@ class SyncCkymotoProductsCommand extends Command
                             {--images : Sync images (default: true)}
                             {--no-images : Skip image sync}
                             {--price-only : Only update product prices}
-                            {--new-products-only : Only add new products, skip existing ones}';
+                            {--new-products-only : Only add new products, skip existing ones}
+                            {--status-only : Only update product active status}';
 
     /**
      * The console command description.
@@ -45,10 +46,18 @@ class SyncCkymotoProductsCommand extends Command
         $syncImages = ! $noImages; // Default true, unless --no-images is specified
         $priceOnly = $this->option('price-only');
         $newProductsOnly = $this->option('new-products-only');
+        $statusOnly = $this->option('status-only');
 
         // Validasyon: price-only ve new-products-only aynı anda aktif olamaz
         if ($priceOnly && $newProductsOnly) {
             $this->error('Cannot use --price-only and --new-products-only together.');
+
+            return Command::FAILURE;
+        }
+
+        // Validasyon: status-only ile price-only veya new-products-only birlikte kullanılamaz
+        if (($priceOnly || $newProductsOnly) && $statusOnly) {
+            $this->error('Cannot use --status-only with --price-only or --new-products-only.');
 
             return Command::FAILURE;
         }
@@ -58,7 +67,9 @@ class SyncCkymotoProductsCommand extends Command
         }
 
         // Sync mode bilgisi
-        if ($priceOnly) {
+        if ($statusOnly) {
+            $this->info('Mode: Status update only (only is_active field will be updated)');
+        } elseif ($priceOnly) {
             $this->info('Mode: Price update only (images and categories will be skipped)');
         } elseif ($newProductsOnly) {
             $this->info('Mode: New products only (existing products will be skipped)');
@@ -90,7 +101,7 @@ class SyncCkymotoProductsCommand extends Command
             $this->info('Fetching products from API...');
             $data = $apiClient->fetchProducts();
             $products = $data['products'] ?? [];
-            if ($categorySync && ! $priceOnly) {
+            if ($categorySync && ! $priceOnly && ! $statusOnly) {
                 $categories = $data['categories'] ?? [];
                 if (!empty($categories)) {
                     $this->info('Syncing categories...');
@@ -102,6 +113,8 @@ class SyncCkymotoProductsCommand extends Command
             } else {
                 if ($priceOnly) {
                     $this->info('Categories sync skipped (price-only mode).');
+                } elseif ($statusOnly) {
+                    $this->info('Categories sync skipped (status-only mode).');
                 } else {
                     $this->info('Categories sync skipped.');
                 }
@@ -113,7 +126,7 @@ class SyncCkymotoProductsCommand extends Command
             }
 
             $this->info('Found '.count($products).' products to sync.');
-            if ($syncImages && ! $priceOnly) {
+            if ($syncImages && ! $priceOnly && ! $statusOnly) {
                 $this->info('External images will be downloaded and stored locally during sync.');
             }
 
@@ -132,10 +145,11 @@ class SyncCkymotoProductsCommand extends Command
                             'ckymoto',
                             $syncImages,
                             $priceOnly,
-                            $newProductsOnly
+                            $newProductsOnly,
+                            $statusOnly
                         );
 
-                        // newProductsOnly modunda null dönerse skip edildi demektir
+                        // newProductsOnly veya statusOnly modunda null dönerse skip edildi demektir
                         if ($result === null) {
                             $skippedCount++;
                         } else {

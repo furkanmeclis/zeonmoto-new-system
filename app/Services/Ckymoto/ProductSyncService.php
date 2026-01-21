@@ -21,6 +21,7 @@ class ProductSyncService
      * @param bool $syncImages
      * @param bool $priceOnly
      * @param bool $newProductsOnly
+     * @param bool $statusOnly
      * @return Product|null
      * @throws \Exception
      */
@@ -29,7 +30,8 @@ class ProductSyncService
         string $provider = 'ckymoto',
         bool $syncImages = true,
         bool $priceOnly = false,
-        bool $newProductsOnly = false
+        bool $newProductsOnly = false,
+        bool $statusOnly = false
     ): ?Product {
         $hash = $this->generateExternalHash($provider, $externalProduct['uniqid'] ?? '');
 
@@ -45,7 +47,12 @@ class ProductSyncService
                 return null;
             }
 
-            return $this->updateProduct($productExternal->product, $externalProduct, $provider, $syncImages, $priceOnly);
+            return $this->updateProduct($productExternal->product, $externalProduct, $provider, $syncImages, $priceOnly, $statusOnly);
+        }
+
+        // statusOnly modunda yeni ürün oluşturulmaz
+        if ($statusOnly) {
+            return null;
         }
 
         return $this->createProduct($externalProduct, $provider, $syncImages);
@@ -84,7 +91,7 @@ class ProductSyncService
                 }
                 
                 // Mevcut ürünü güncelle
-                return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false);
+                return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false, false);
             }
 
             // Son sort_order değerini al
@@ -123,7 +130,7 @@ class ProductSyncService
                         }
                         
                         // Mevcut ürünü güncelle
-                        return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false);
+                        return $this->updateProduct($existingProduct, $externalProduct, $provider, $syncImages, false, false);
                     }
                 }
                 
@@ -187,6 +194,7 @@ class ProductSyncService
      * @param string $provider
      * @param bool $syncImages
      * @param bool $priceOnly
+     * @param bool $statusOnly
      * @return Product
      */
     protected function updateProduct(
@@ -194,11 +202,30 @@ class ProductSyncService
         array $externalProduct,
         string $provider,
         bool $syncImages = true,
-        bool $priceOnly = false
+        bool $priceOnly = false,
+        bool $statusOnly = false
     ): Product {
-        return DB::transaction(function () use ($product, $externalProduct, $provider, $syncImages, $priceOnly) {
-            // priceOnly modunda sadece fiyat güncellenir
-            if ($priceOnly) {
+        return DB::transaction(function () use ($product, $externalProduct, $provider, $syncImages, $priceOnly, $statusOnly) {
+            // statusOnly modunda sadece is_active güncellenir
+            if ($statusOnly) {
+                // Boolean değer normalizasyonu (string "1"/"0", int 1/0, bool true/false)
+                $isActive = $externalProduct['is_active'] ?? $product->is_active;
+                
+                // Farklı formatları boolean'a çevir
+                if (is_string($isActive)) {
+                    $isActive = in_array(strtolower($isActive), ['1', 'true', 'yes', 'on'], true);
+                } elseif (is_int($isActive)) {
+                    $isActive = (bool) $isActive;
+                } elseif (!is_bool($isActive)) {
+                    // Bilinmeyen format için mevcut değeri koru
+                    $isActive = $product->is_active;
+                }
+                
+                $product->update([
+                    'is_active' => $isActive,
+                ]);
+            } elseif ($priceOnly) {
+                // priceOnly modunda sadece fiyat güncellenir
                 $product->update([
                     'base_price' => $externalProduct['price'] ?? $product->base_price,
                 ]);
@@ -214,9 +241,10 @@ class ProductSyncService
             }
 
             // is_active, sort_order, custom_price, final_price güncellenmez (admin kontrolünde)
+            // (statusOnly modunda is_active hariç)
 
-            // priceOnly modunda resim ve kategori sync edilmez
-            if (! $priceOnly) {
+            // priceOnly ve statusOnly modunda resim ve kategori sync edilmez
+            if (! $priceOnly && ! $statusOnly) {
                 // Yeni external görselleri ekle (mevcut external görselleri silmez)
                 if ($syncImages) {
                     $this->syncProductImages($product, $externalProduct['images'] ?? []);
@@ -244,11 +272,18 @@ class ProductSyncService
                 ];
             }
 
-            Log::info('Product updated from external source', array_merge([
+            $logData = array_merge([
                 'product_id' => $product->id,
                 'sku' => $product->sku,
                 'provider' => $provider,
-            ], $categoryInfo));
+            ], $categoryInfo);
+
+            if ($statusOnly) {
+                $logData['is_active'] = $product->is_active;
+                Log::info('Product status updated from external source', $logData);
+            } else {
+                Log::info('Product updated from external source', $logData);
+            }
 
             return $product->fresh();
         });
