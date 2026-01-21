@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { getFavorites } from '@/lib/favorites'
 import { PricePinDialog } from '@/components/PricePinDialog'
 import { usePriceVisibility } from '@/hooks/usePriceVisibility'
+import { useCartSession } from '@/hooks/useCartSession'
 
 interface GuestLayoutProps extends PropsWithChildren {
     cartCount?: number
@@ -18,6 +19,9 @@ export default function GuestLayout({ children, cartCount = 0 }: GuestLayoutProp
     const [favoritesCount, setFavoritesCount] = useState(0)
     const [pinDialogOpen, setPinDialogOpen] = useState(false)
     const { isPriceVisible, resetVerification } = usePriceVisibility()
+    
+    // Restore cart session on mount
+    useCartSession()
 
     useEffect(() => {
         // Initial load

@@ -37,6 +37,8 @@ Route::prefix('cart')->name('cart.')->group(function () {
     Route::put('/items/{cartItem}', [CartController::class, 'update'])->name('update');
     Route::delete('/items/{cartItem}', [CartController::class, 'remove'])->name('remove');
     Route::get('/count', [CartController::class, 'count'])->name('count');
+    Route::post('/restore', [CartController::class, 'restore'])->name('restore');
+    Route::get('/session-key', [CartController::class, 'getSessionKey'])->name('session-key');
 });
 
 // Checkout routes

@@ -20,23 +20,104 @@ class CartController extends Controller
 
     /**
      * Get or create cart for current session.
+     * Also tries to restore cart from stored session key if current session doesn't have one.
      */
     protected function getOrCreateCart(): Cart
     {
         $sessionKey = session()->getId();
         
+        // Try to find cart with current session key
         $cart = Cart::where('session_key', $sessionKey)
             ->where('expires_at', '>', now())
             ->first();
 
+        // If no cart found, try to restore from stored session key (for session recovery)
+        if (!$cart) {
+            $storedSessionKey = session()->get('cart_session_key');
+            if ($storedSessionKey && $storedSessionKey !== $sessionKey) {
+                $cart = Cart::where('session_key', $storedSessionKey)
+                    ->where('expires_at', '>', now())
+                    ->first();
+                
+                // If found, update to current session key
+                if ($cart) {
+                    $cart->update(['session_key' => $sessionKey]);
+                    session()->put('cart_session_key', $sessionKey);
+                }
+            }
+        }
+
+        // If still no cart, create a new one
         if (!$cart) {
             $cart = Cart::create([
                 'session_key' => $sessionKey,
                 'expires_at' => now()->addDays(7),
             ]);
+            // Store session key for recovery
+            session()->put('cart_session_key', $sessionKey);
         }
 
         return $cart;
+    }
+
+    /**
+     * Restore cart from stored session key (for session recovery).
+     * This endpoint allows frontend to restore cart when session is lost.
+     */
+    public function restore(Request $request)
+    {
+        $request->validate([
+            'session_key' => 'nullable|string|max:255',
+        ]);
+
+        $storedSessionKey = $request->input('session_key');
+        $currentSessionKey = session()->getId();
+
+        if ($storedSessionKey) {
+            // Try to find cart with stored session key
+            $cart = Cart::where('session_key', $storedSessionKey)
+                ->where('expires_at', '>', now())
+                ->first();
+
+            if ($cart) {
+                // Update cart to use current session key
+                $cart->update(['session_key' => $currentSessionKey]);
+                session()->put('cart_session_key', $currentSessionKey);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sepet başarıyla geri yüklendi.',
+                    'cart_count' => $cart->total_items,
+                ]);
+            }
+        }
+
+        // If no cart found, create a new one
+        $cart = Cart::create([
+            'session_key' => $currentSessionKey,
+            'expires_at' => now()->addDays(7),
+        ]);
+        session()->put('cart_session_key', $currentSessionKey);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Yeni sepet oluşturuldu.',
+            'cart_count' => 0,
+            'session_key' => $currentSessionKey,
+        ]);
+    }
+
+    /**
+     * Get current session key for cart persistence.
+     */
+    public function getSessionKey()
+    {
+        $sessionKey = session()->getId();
+        session()->put('cart_session_key', $sessionKey);
+
+        return response()->json([
+            'session_key' => $sessionKey,
+        ]);
     }
 
     /**

@@ -139,14 +139,14 @@ class CheckoutController extends Controller
 
             DB::beginTransaction();
 
-            // Find or create customer by phone
-            $customer = Customer::where('phone', $request->phone)->first();
+            // Find or create customer by phone (with normalization)
+            $customer = Customer::findByPhone($request->phone);
 
             if (!$customer) {
                 $customer = Customer::create([
                     'first_name' => $request->first_name,
                     'last_name' => $request->last_name,
-                    'phone' => $request->phone,
+                    'phone' => $request->phone, // Will be normalized by mutator
                     'city' => $request->city,
                     'district' => $request->district,
                     'address' => $request->address,

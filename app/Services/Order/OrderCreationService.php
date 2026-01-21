@@ -86,7 +86,8 @@ class OrderCreationService
         $phone = $customerData['phone'] ?? null;
 
         if ($phone) {
-            $customer = Customer::where('phone', $phone)->first();
+            // Use findByPhone which handles normalization
+            $customer = Customer::findByPhone($phone);
             
             if ($customer) {
                 // Update customer data if provided
@@ -103,7 +104,7 @@ class OrderCreationService
             }
         }
 
-        // Create new customer
+        // Create new customer (phone will be normalized by mutator)
         return Customer::create([
             'first_name' => $customerData['first_name'] ?? '',
             'last_name' => $customerData['last_name'] ?? '',
