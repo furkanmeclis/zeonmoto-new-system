@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Services\Shipping\ShippingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -12,6 +13,11 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
+    public function __construct(
+        protected ShippingService $shippingService
+    ) {
+    }
+
     /**
      * Get or create cart for current session.
      */
@@ -40,10 +46,23 @@ class CartController extends Controller
     {
         $cart = $this->getOrCreateCart();
         
+        // Check PIN verification status first
+        $isPinVerified = session()->get('price_pin_verified', false);
+        
         $items = $cart->items()
             ->with('product.images')
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($isPinVerified) {
+                // Calculate price based on PIN status
+                if ($isPinVerified) {
+                    // PIN girildiyse final_price (şifreli satış fiyatı) kullan
+                    $priceResult = $item->product->calculatePrice();
+                    $price = (float) $priceResult->final;
+                } else {
+                    // PIN girilmediyse retail_price (perakende satış fiyatı) kullan
+                    $price = (float) ($item->product->retail_price ?? $item->product->final_price);
+                }
+                
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
@@ -52,7 +71,7 @@ class CartController extends Controller
                         'id' => $item->product->id,
                         'name' => $item->product->name,
                         'sku' => $item->product->sku,
-                        'price' => (float) $item->product->final_price,
+                        'price' => $price,
                         'retail_price' => (float) ($item->product->retail_price ?? $item->product->final_price),
                         'image' => $item->product->default_image_url,
                     ],
@@ -60,11 +79,19 @@ class CartController extends Controller
             });
 
         $subtotal = $items->sum(fn($item) => $item['product']['price'] * $item['quantity']);
-        $total = $subtotal; // Discount logic can be added here
+        
+        // Calculate shipping cost
+        $shippingCalculation = $this->shippingService->calculateShippingCost($subtotal, $isPinVerified);
+        $shippingCost = $shippingCalculation->shippingCost;
+        
+        $total = $subtotal + $shippingCost;
 
         return Inertia::render('Cart/Index', [
             'items' => $items,
             'subtotal' => $subtotal,
+            'shipping_cost' => $shippingCost,
+            'shipping_is_free' => $shippingCalculation->isFree,
+            'shipping_remaining_amount' => $shippingCalculation->remainingAmount,
             'total' => $total,
             'cartCount' => $cart->total_items,
         ]);

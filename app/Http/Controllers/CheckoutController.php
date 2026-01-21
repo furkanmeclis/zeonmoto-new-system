@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Payment\PaymentService;
+use App\Services\Shipping\ShippingService;
 use App\Settings\PaymentCommissionSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,8 @@ use Inertia\Response;
 class CheckoutController extends Controller
 {
     public function __construct(
-        protected PaymentService $paymentService
+        protected PaymentService $paymentService,
+        protected ShippingService $shippingService
     ) {
     }
 
@@ -45,10 +47,23 @@ class CheckoutController extends Controller
             ]);
         }
 
+        // Check PIN verification status first
+        $isPinVerified = session()->get('price_pin_verified', false);
+        
         $items = $cart->items()
             ->with('product')
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($isPinVerified) {
+                // Calculate price based on PIN status
+                if ($isPinVerified) {
+                    // PIN girildiyse final_price (şifreli satış fiyatı) kullan
+                    $priceResult = $item->product->calculatePrice();
+                    $price = (float) $priceResult->final;
+                } else {
+                    // PIN girilmediyse retail_price (perakende satış fiyatı) kullan
+                    $price = (float) ($item->product->retail_price ?? $item->product->final_price);
+                }
+                
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
@@ -57,14 +72,19 @@ class CheckoutController extends Controller
                         'id' => $item->product->id,
                         'name' => $item->product->name,
                         'sku' => $item->product->sku,
-                        'price' => (float) $item->product->final_price,
+                        'price' => $price,
                         'retail_price' => (float) ($item->product->retail_price ?? $item->product->final_price),
                     ],
                 ];
             });
 
         $subtotal = $items->sum(fn($item) => $item['product']['price'] * $item['quantity']);
-        $total = $subtotal;
+        
+        // Calculate shipping cost
+        $shippingCalculation = $this->shippingService->calculateShippingCost($subtotal, $isPinVerified);
+        $shippingCost = $shippingCalculation->shippingCost;
+        
+        $total = $subtotal + $shippingCost;
 
         // Get commission settings
         $commissionSettings = app(PaymentCommissionSettings::class);
@@ -76,12 +96,15 @@ class CheckoutController extends Controller
         
         if ($commissionRate > 0) {
             $commissionAmount = ($subtotal * $commissionRate) / 100;
-            $totalWithCommission = $subtotal + $commissionAmount;
+            $totalWithCommission = $subtotal + $shippingCost + $commissionAmount;
         }
 
         return Inertia::render('Checkout/Index', [
             'items' => $items,
             'subtotal' => $subtotal,
+            'shipping_cost' => $shippingCost,
+            'shipping_is_free' => $shippingCalculation->isFree,
+            'shipping_remaining_amount' => $shippingCalculation->remainingAmount,
             'total' => $total,
             'commission_rate' => $commissionRate,
             'commission_amount' => $commissionAmount,
@@ -155,7 +178,12 @@ class CheckoutController extends Controller
                     return $retailPrice * $item->quantity;
                 }
             });
-            $total = $subtotal;
+            
+            // Calculate shipping cost
+            $shippingCalculation = $this->shippingService->calculateShippingCost($subtotal, $isPinVerified);
+            $shippingCost = $shippingCalculation->shippingCost;
+            
+            $total = $subtotal + $shippingCost;
 
             // Get commission settings
             $commissionSettings = app(PaymentCommissionSettings::class);
@@ -167,7 +195,7 @@ class CheckoutController extends Controller
             
             if ($paymentMethod === 'paytr_link' && $commissionRate > 0) {
                 $commissionAmount = ($subtotal * $commissionRate) / 100;
-                $total = $subtotal + $commissionAmount;
+                $total = $subtotal + $shippingCost + $commissionAmount;
             }
 
             // Create order first to get order_no
@@ -175,6 +203,7 @@ class CheckoutController extends Controller
             $order = Order::create([
                 'customer_id' => $customer->id,
                 'subtotal' => $subtotal,
+                'shipping_cost' => $shippingCost,
                 'total' => $total,
                 'total_amount' => $total, // Deprecated field, but still required in DB
                 'currency' => 'TRY',
@@ -310,6 +339,9 @@ class CheckoutController extends Controller
                 'id' => $order->id,
                 'order_no' => $order->order_no,
                 'status' => $order->status->value,
+                'subtotal' => (float) $order->subtotal,
+                'shipping_cost' => (float) ($order->shipping_cost ?? 0),
+                'shipping_is_free' => ($order->shipping_cost ?? 0) == 0,
                 'total' => (float) $order->total,
                 'currency' => $order->currency,
                 'payment_method' => $order->payment_method,

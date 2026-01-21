@@ -25,11 +25,22 @@ interface CartItem {
 interface Props {
     items: CartItem[]
     subtotal: number
+    shipping_cost?: number
+    shipping_is_free?: boolean
+    shipping_remaining_amount?: number
     total: number
     cartCount: number
 }
 
-export default function CartIndex({ items, subtotal, total, cartCount }: Props) {
+export default function CartIndex({ 
+    items, 
+    subtotal, 
+    shipping_cost = 0,
+    shipping_is_free = false,
+    shipping_remaining_amount = 0,
+    total, 
+    cartCount 
+}: Props) {
     const { isPriceVisible } = usePriceVisibility()
     const [quantityInputs, setQuantityInputs] = useState<Record<number, string>>({})
 
@@ -45,9 +56,11 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
         ? subtotal 
         : items.reduce((sum, item) => sum + (item.product.retail_price ?? item.product.price) * item.quantity, 0)
     
+    // Shipping cost is always calculated on backend, show it always
+    const displayShippingCost = shipping_cost ?? 0
     const displayTotal = isPriceVisible 
         ? total 
-        : displaySubtotal
+        : displaySubtotal + displayShippingCost
 
     const handleUpdateQuantity = (itemId: number, quantity: number) => {
         if (quantity < 1) {
@@ -240,7 +253,39 @@ export default function CartIndex({ items, subtotal, total, cartCount }: Props) 
                                             {formatPrice(displaySubtotal)}
                                         </span>
                                     </div>
+                                    
+                                    {/* Shipping Cost - Always show */}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                            {shipping_is_free ? (
+                                                <span className="text-green-600 dark:text-green-400">Kargo</span>
+                                            ) : (
+                                                'Kargo'
+                                            )}
+                                        </span>
+                                        <span className={`font-medium ${shipping_is_free ? 'text-green-600 dark:text-green-400' : ''}`}>
+                                            {shipping_is_free ? (
+                                                <span>Ücretsiz</span>
+                                            ) : (
+                                                formatPrice(displayShippingCost)
+                                            )}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Free Shipping Remaining Amount Message */}
+                                    {!shipping_is_free && shipping_remaining_amount && shipping_remaining_amount > 0 && (
+                                        <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                                                <span className="font-semibold">
+                                                    Sepetinize {formatPrice(shipping_remaining_amount)} daha ekleyin,
+                                                </span>
+                                                {' '}kargo ücretsiz olsun!
+                                            </p>
+                                        </div>
+                                    )}
+                                    
                                     <Separator />
+                                    
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Toplam</span>
                                         <span className="text-primary">

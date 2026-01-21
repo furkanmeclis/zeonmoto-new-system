@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import GuestLayout from '@/components/layouts/GuestLayout'
-import { usePriceVisibility } from '@/hooks/usePriceVisibility'
 import { useState } from 'react'
 
 interface OrderItem {
@@ -18,6 +17,9 @@ interface Order {
     id: number
     order_no: string
     status: string
+    subtotal: number
+    shipping_cost: number
+    shipping_is_free: boolean
     total: number
     currency: string
     payment_method?: string
@@ -51,7 +53,6 @@ interface Props {
 }
 
 export default function CheckoutSuccess({ order, payment_info, cartCount }: Props) {
-    const { isPriceVisible } = usePriceVisibility()
     const [copied, setCopied] = useState(false)
 
     const formatPrice = (price: number) => {
@@ -108,11 +109,7 @@ export default function CheckoutSuccess({ order, payment_info, cartCount }: Prop
                                 <div>
                                     <p className="text-sm text-muted-foreground">Toplam</p>
                                     <p className="font-semibold text-primary">
-                                        {isPriceVisible ? (
-                                            formatPrice(order.total)
-                                        ) : (
-                                            <span className="text-muted-foreground">PIN gerekli</span>
-                                        )}
+                                        {formatPrice(order.total)}
                                     </p>
                                 </div>
                             </div>
@@ -151,23 +148,44 @@ export default function CheckoutSuccess({ order, payment_info, cartCount }: Prop
                                             <div className="flex-1">
                                                 <p className="font-medium">{item.product_name}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {item.quantity} adet x{' '}
-                                                    {isPriceVisible ? (
-                                                        formatPrice(item.unit_price)
-                                                    ) : (
-                                                        <span className="text-muted-foreground">PIN gerekli</span>
-                                                    )}
+                                                    {item.quantity} adet x {formatPrice(item.unit_price)}
                                                 </p>
                                             </div>
                                             <div className="text-right font-semibold">
-                                                {isPriceVisible ? (
-                                                    formatPrice(item.total_price)
-                                                ) : (
-                                                    <span className="text-muted-foreground">PIN gerekli</span>
-                                                )}
+                                                {formatPrice(item.total_price)}
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Order Summary */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Ara Toplam</span>
+                                    <span className="font-medium">
+                                        {formatPrice(order.subtotal)}
+                                    </span>
+                                </div>
+                                
+                                {/* Shipping Cost */}
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">
+                                        {order.shipping_is_free ? (
+                                            <span className="text-green-600 dark:text-green-400">Kargo</span>
+                                        ) : (
+                                            'Kargo'
+                                        )}
+                                    </span>
+                                    <span className={`font-medium ${order.shipping_is_free ? 'text-green-600 dark:text-green-400' : ''}`}>
+                                        {order.shipping_is_free ? (
+                                            <span>Ücretsiz</span>
+                                        ) : (
+                                            formatPrice(order.shipping_cost)
+                                        )}
+                                    </span>
                                 </div>
                             </div>
 
@@ -177,11 +195,7 @@ export default function CheckoutSuccess({ order, payment_info, cartCount }: Prop
                             <div className="flex justify-between text-lg font-bold">
                                 <span>Toplam</span>
                                 <span className="text-primary">
-                                    {isPriceVisible ? (
-                                        formatPrice(order.total)
-                                    ) : (
-                                        <span className="text-muted-foreground">PIN gerekli</span>
-                                    )}
+                                    {formatPrice(order.total)}
                                 </span>
                             </div>
                         </CardContent>
@@ -235,11 +249,7 @@ export default function CheckoutSuccess({ order, payment_info, cartCount }: Prop
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm text-muted-foreground">Ödenecek Tutar:</span>
                                                 <span className="text-lg font-bold text-primary">
-                                                    {isPriceVisible ? (
-                                                        formatPrice(order.total)
-                                                    ) : (
-                                                        <span className="text-muted-foreground">PIN gerekli</span>
-                                                    )}
+                                                    {formatPrice(order.total)}
                                                 </span>
                                             </div>
                                         </div>

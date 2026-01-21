@@ -19,6 +19,7 @@ class Order extends Model
         'admin_status', // Deprecated, use status instead
         'subtotal',
         'total',
+        'shipping_cost',
         'currency',
         'payment_method',
         'payment_link_id',
@@ -30,6 +31,7 @@ class Order extends Model
         'total_discount' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'total' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
     ];
 
     /**
@@ -128,8 +130,11 @@ class Order extends Model
         // Get total discount
         $totalDiscount = round($this->total_discount ?? 0, 2);
 
-        // Calculate final total
-        $total = round(max(0, $subtotal - $totalDiscount), 2);
+        // Get shipping cost
+        $shippingCost = round($this->shipping_cost ?? 0, 2);
+
+        // Calculate final total (subtotal - discount + shipping)
+        $total = round(max(0, $subtotal - $totalDiscount + $shippingCost), 2);
 
         // Update order totals
         $this->update([
