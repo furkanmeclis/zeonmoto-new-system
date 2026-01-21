@@ -41,6 +41,7 @@ class SyncCkymotoProducts extends Page implements HasSchemas
         'sync_images' => true,
         'price_only' => false,
         'new_products_only' => false,
+        'status_only' => false,
     ];
 
     public string $syncStatus = '';
@@ -63,6 +64,7 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if ($state) {
                                     $set('price_only', false);
+                                    $set('status_only', false);
                                 }
                             }),
 
@@ -76,6 +78,7 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                                     $set('sync_images', false);
                                     $set('new_products_only', false);
                                     $set('category_sync', false);
+                                    $set('status_only', false);
                                 }
                             }),
 
@@ -89,6 +92,21 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                                     $set('sync_images', true);
                                     $set('category_sync', true);
                                     $set('price_only', false);
+                                    $set('status_only', false);
+                                }
+                            }),
+
+                        Checkbox::make('status_only')
+                            ->label('Sadece Aktiflik Durumu Güncellemesi')
+                            ->helperText('Sadece mevcut ürünlerin is_active durumu güncellenir. Yeni ürün oluşturulmaz, fiyat, resim ve kategori sync edilmez.')
+                            ->default(false)
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $set('sync_images', false);
+                                    $set('category_sync', false);
+                                    $set('price_only', false);
+                                    $set('new_products_only', false);
                                 }
                             }),
 
@@ -100,6 +118,7 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if ($state) {
                                     $set('price_only', false);
+                                    $set('status_only', false);
                                 }
                             }),
 
@@ -181,12 +200,24 @@ class SyncCkymotoProducts extends Page implements HasSchemas
         $syncImages = $data['sync_images'] ?? true;
         $priceOnly = $data['price_only'] ?? false;
         $newProductsOnly = $data['new_products_only'] ?? false;
+        $statusOnly = $data['status_only'] ?? false;
 
         // Validasyon: price_only ve new_products_only aynı anda aktif olamaz
         if ($priceOnly && $newProductsOnly) {
             Notification::make()
                 ->title('Geçersiz Seçim')
                 ->body('"Sadece Fiyat Güncellemesi" ve "Sadece Yeni Ürünler Eklensin" aynı anda seçilemez.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        // Validasyon: status_only ile price_only veya new_products_only birlikte kullanılamaz
+        if (($priceOnly || $newProductsOnly) && $statusOnly) {
+            Notification::make()
+                ->title('Geçersiz Seçim')
+                ->body('"Sadece Aktiflik Durumu Güncellemesi" diğer modlarla birlikte kullanılamaz.')
                 ->danger()
                 ->send();
 
@@ -241,6 +272,9 @@ class SyncCkymotoProducts extends Page implements HasSchemas
                 }
                 if ($newProductsOnly) {
                     $options['--new-products-only'] = true;
+                }
+                if ($statusOnly) {
+                    $options['--status-only'] = true;
                 }
 
                 // Command çıktısını yakalamak için
@@ -316,7 +350,7 @@ class SyncCkymotoProducts extends Page implements HasSchemas
         }
 
         $command = 'products:sync-ckymoto';
-        $options = '--category-sync';
+        $options = '';
 
         // Mode'a göre seçenekleri ekle
         switch ($mode) {
@@ -326,14 +360,18 @@ class SyncCkymotoProducts extends Page implements HasSchemas
             case 'new-products-only':
                 $options .= ' --new-products-only';
                 break;
+            case 'status-only':
+                $options .= ' --status-only';
+                break;
             case 'no-images':
                 $options .= ' --no-images';
                 break;
             case 'images':
-                $options .= ' --images';
+                $options .= ' --images --category-sync';
                 break;
             default:
                 // Default: category-sync ve images (default true)
+                $options .= ' --category-sync';
                 break;
         }
 
@@ -358,6 +396,10 @@ class SyncCkymotoProducts extends Page implements HasSchemas
             'new-products-only' => [
                 'label' => 'Sadece Yeni Ürünler',
                 'command' => $this->getCronCommand('new-products-only'),
+            ],
+            'status-only' => [
+                'label' => 'Sadece Aktiflik Durumu Güncellemesi',
+                'command' => $this->getCronCommand('status-only'),
             ],
             'no-images' => [
                 'label' => 'Resimler Olmadan',
