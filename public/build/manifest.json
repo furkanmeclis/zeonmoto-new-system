@@ -20,7 +20,7 @@
     "src": "node_modules/@fontsource-variable/nunito-sans/files/nunito-sans-vietnamese-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-CEmfUQu8.css",
+    "file": "assets/app-u1Ts8FeE.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -33,7 +33,7 @@
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DjjKjGHe.js",
+    "file": "assets/app-B_ce4yCX.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
