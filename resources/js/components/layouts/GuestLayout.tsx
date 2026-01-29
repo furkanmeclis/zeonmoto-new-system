@@ -240,9 +240,9 @@ export default function GuestLayout({ children, cartCount = 0 }: GuestLayoutProp
                             <div className="space-y-3 mb-6">
                                 <div className="text-white/90">
                                     <span className="block font-bold text-white mb-1">Onur GEDİKKAYA</span>
-                                    <a href="tel:05077378097" className="flex items-center justify-center lg:justify-start gap-2 hover:text-white transition-colors">
+                                    <a href="tel:05070004777" className="flex items-center justify-center lg:justify-start gap-2 hover:text-white transition-colors">
                                         <FaPhone className="h-4 w-4" />
-                                        0507 737 80 97
+                                        0507 000 4777
                                     </a>
                                 </div>
                             </div>
